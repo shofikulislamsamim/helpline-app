@@ -12,19 +12,23 @@ import {
   Award, 
   FileText, 
   Image as ImageIcon, 
-  AlertCircle 
+  AlertCircle,
+  Navigation
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { useHire } from '../../context/HireContext';
+import { getWorkerDistanceResult, CustomerLocationQuery } from '../../lib/geoDistance';
 
 interface WorkerProfileModalProps {
   worker: UserProfile | null;
+  customerLocation?: CustomerLocationQuery;
   onClose: () => void;
   onHireRequest: (worker: UserProfile) => void;
 }
 
 export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
   worker,
+  customerLocation,
   onClose,
   onHireRequest,
 }) => {
@@ -34,10 +38,12 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
   if (!worker) return null;
 
   const isOnline = worker.isOnline;
-  const isVerified = worker.verificationStatus === 'verified';
-  const mainProf = worker.mainProfession || worker.professions[0] || 'দক্ষ কারিগর';
+  const isVerified = worker.verificationStatus === 'verified' || worker.verificationStatus === 'approved';
+  const mainProf = worker.mainProfession || worker.professions?.[0] || 'দক্ষ কারিগর';
   const stats = getWorkerStats(worker.userId);
   const reviews = getWorkerReviews(worker.userId);
+
+  const distanceResult = worker ? getWorkerDistanceResult(worker, customerLocation) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fadeIn">
@@ -174,13 +180,37 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>
-                  <strong>বর্তমান ঠিকানা:</strong> {worker.presentAddress.division}, {worker.presentAddress.district} ({worker.presentAddress.upazila})
+                  <strong>বর্তমান ঠিকানা:</strong> {worker.presentAddress?.division || 'ঢাকা'}, {worker.presentAddress?.district || 'ঢাকা'} ({worker.presentAddress?.upazila || 'বাংলাদেশ'})
                 </span>
               </div>
               {worker.serviceAreas && worker.serviceAreas.length > 0 && (
                 <div className="flex items-start gap-2 pt-1 border-t border-slate-200/60">
                   <span className="font-semibold text-slate-800 shrink-0">কাজের আওতাভুক্ত এলাকা:</span>
                   <span className="text-slate-600">{worker.serviceAreas.join(', ')}</span>
+                </div>
+              )}
+              {distanceResult && (
+                <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 bg-blue-50/50 -mx-3.5 -mb-3.5 p-3 rounded-b-xl">
+                  <div className="flex items-center gap-1.5">
+                    {distanceResult.matchType === 'live_gps' ? (
+                      <>
+                        <Navigation className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span className="text-blue-800 font-bold">
+                          আপনার অবস্থান থেকে দূরত্ব: {distanceResult.formattedDistance}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="text-emerald-800 font-semibold">
+                          অবস্থান মিল: {distanceResult.matchLabelBn}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-medium text-slate-500">
+                    {distanceResult.matchType === 'live_gps' ? 'লাইভ জিপিএস স্থানাঙ্ক ভিত্তিক' : 'এলাকা/উপজেলা ভিত্তিক মিল'}
+                  </span>
                 </div>
               )}
             </div>

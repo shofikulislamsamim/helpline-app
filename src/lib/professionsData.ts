@@ -245,6 +245,8 @@ export const STANDARD_PROFESSIONS: ProfessionDef[] = [
   },
 ];
 
+export const PROFESSIONS_LIST = STANDARD_PROFESSIONS;
+
 export const getProfessionSkills = (professionName: string): string[] => {
   const found = STANDARD_PROFESSIONS.find(
     (p) =>

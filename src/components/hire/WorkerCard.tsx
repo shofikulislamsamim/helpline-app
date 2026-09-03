@@ -8,29 +8,36 @@ import {
   ShieldCheck, 
   PhoneCall, 
   Eye, 
-  Send 
+  Send,
+  Navigation
 } from 'lucide-react';
 import { UserProfile } from '../../types';
+import { getWorkerDistanceResult, CustomerLocationQuery } from '../../lib/geoDistance';
 
 interface WorkerCardProps {
   worker: UserProfile;
+  customerLocation?: CustomerLocationQuery;
   onViewProfile: (worker: UserProfile) => void;
   onHireRequest: (worker: UserProfile) => void;
 }
 
 export const WorkerCard: React.FC<WorkerCardProps> = ({
   worker,
+  customerLocation,
   onViewProfile,
   onHireRequest,
 }) => {
   const isOnline = worker.isOnline;
-  const isVerified = worker.verificationStatus === 'verified';
-  const mainProf = worker.mainProfession || worker.professions[0] || 'দক্ষ কারিগর';
+  const isVerified = worker.verificationStatus === 'verified' || worker.verificationStatus === 'approved';
+  const mainProf = worker.mainProfession || worker.professions?.[0] || 'দক্ষ কারিগর';
   const experienceYears = worker.experiences?.[0]?.years || 3;
   const topSkills = (worker.skills || []).slice(0, 3);
   const rating = worker.rating || 5.0;
   const reviewCount = worker.reviewCount || 0;
   const completedJobs = worker.completedJobsCount || 0;
+
+  // Calculate real distance & matching hierarchy
+  const distanceResult = getWorkerDistanceResult(worker, customerLocation);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
@@ -107,6 +114,43 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Distance & Proximity Indicator */}
+        {distanceResult && (
+          <div className="mt-2 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/60 text-[11px]">
+            <div className="flex items-center gap-1.5 truncate">
+              {distanceResult.matchType === 'live_gps' ? (
+                <>
+                  <Navigation className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span className="text-blue-700 font-bold truncate">
+                    {distanceResult.formattedDistance} দূরে
+                  </span>
+                  <span className="text-slate-400 text-[10px] hidden sm:inline">(লাইভ জিপিএস)</span>
+                </>
+              ) : distanceResult.matchType === 'upazila_match' ? (
+                <>
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="text-emerald-700 font-semibold truncate">{distanceResult.matchLabelBn}</span>
+                </>
+              ) : distanceResult.matchType === 'service_area_match' ? (
+                <>
+                  <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-slate-700 truncate">{distanceResult.matchLabelBn}</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="text-slate-500 truncate">{distanceResult.matchLabelBn}</span>
+                </>
+              )}
+            </div>
+            {distanceResult.matchType === 'live_gps' && isOnline && (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded shrink-0">
+                লাইভ
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Skills Chips */}
         {topSkills.length > 0 && (

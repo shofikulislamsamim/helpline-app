@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Search, MapPin, PhoneCall, ShieldAlert, ChevronRight, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Search, MapPin, PhoneCall, ShieldAlert, ChevronRight, CheckCircle2, AlertTriangle, ArrowRight, HardHat } from 'lucide-react';
 import { ServiceCards } from '../components/home/ServiceCards';
 import { StatusToggle } from '../components/common/StatusToggle';
 import { ModuleId } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useAppSettings } from '../context/AppSettingsContext';
+import { useHire } from '../context/HireContext';
 import { i18n } from '../lib/i18n';
 
 interface HomePageProps {
@@ -15,7 +16,15 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({ onSelectModule, onNavigate }) => {
   const { userProfile } = useAuth();
   const { settings } = useAppSettings();
+  const { hireRequests } = useHire();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Count new hire requests relevant to the worker/demo worker
+  const newRequestsCount = hireRequests.filter(
+    (r) =>
+      (r.workerId === userProfile.userId || r.workerId === 'worker-01-shafiq') &&
+      (r.status === 'REQUESTED' || r.status === 'QUOTED')
+  ).length;
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +41,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectModule, onNavigate }
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
             <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
             <span>
-              বর্তমান লোকেশন: <span className="text-slate-900 font-bold">{userProfile.presentAddress.division}, {userProfile.presentAddress.district} ({userProfile.presentAddress.upazila})</span>
+              বর্তমান লোকেশন: <span className="text-slate-900 font-bold">{userProfile.presentAddress?.division || 'ঢাকা'}, {userProfile.presentAddress?.district || 'ঢাকা'} ({userProfile.presentAddress?.upazila || 'বাংলাদেশ'})</span>
             </span>
           </div>
           <button
@@ -86,6 +95,45 @@ export const HomePage: React.FC<HomePageProps> = ({ onSelectModule, onNavigate }
 
       {/* User Availability Status Quick Card */}
       <StatusToggle />
+
+      {/* Worker New Requests Shortcut (Requirement 4) */}
+      {newRequestsCount > 0 && (
+        <div 
+          id="home-new-work-requests-shortcut"
+          className="bg-slate-900 text-white rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border border-blue-600/40 shadow-md"
+        >
+          <div className="flex items-center gap-3.5 w-full sm:w-auto">
+            <div className="w-12 h-12 rounded-xl bg-blue-600/90 flex items-center justify-center text-white shrink-0 relative shadow-xs">
+              <HardHat className="w-6 h-6 text-yellow-400" />
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 border-2 border-slate-900 rounded-full text-[11px] font-black flex items-center justify-center animate-pulse">
+                {newRequestsCount}
+              </span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  📥 নতুন কাজের অনুরোধ ({newRequestsCount})
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-red-500/90 text-white text-[10px] font-black uppercase tracking-wider">
+                  New
+                </span>
+              </div>
+              <p className="text-xs text-blue-200 mt-0.5">
+                কাস্টমার আপনার কাজের জন্য অনুরোধ পাঠিয়েছেন। এখনই ইনবক্সে চেক করে কোটেশন দিন।
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            id="btn-home-view-work-inbox"
+            onClick={() => onNavigate('work_inbox')}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs shrink-0"
+          >
+            <span>ইনবক্স খুলুন</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* 6 Primary Service Cards Section */}
       <section className="space-y-4">

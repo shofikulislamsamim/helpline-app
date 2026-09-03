@@ -1,7 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, CheckCheck, ShieldCheck, AlertCircle, Info } from 'lucide-react';
+import { 
+  Bell, 
+  CheckCheck, 
+  ShieldCheck, 
+  AlertCircle, 
+  Info, 
+  MessageSquare, 
+  Briefcase, 
+  DollarSign, 
+  BellRing,
+  Clock
+} from 'lucide-react';
 import { AppNotification } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useHire } from '../../context/HireContext';
+import { 
+  requestBrowserPushPermission, 
+  isPushNotificationSupported 
+} from '../../lib/pushNotificationService';
 
 interface NotificationDropdownProps {
   notifications?: AppNotification[];
@@ -17,15 +33,23 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   onNavigate
 }) => {
   const auth = useAuth();
+  const { setActiveRequestIdForDetails } = useHire();
   const notifications = propNotifications ?? auth?.notifications ?? [];
   const onMarkAsRead = propMarkAsRead ?? auth?.markNotificationAsRead ?? (() => {});
   const onMarkAllAsRead = propMarkAllAsRead ?? auth?.markAllNotificationsAsRead ?? (() => {});
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pushStatus, setPushStatus] = useState<string>('default');
 
   const safeNotifications = notifications || [];
   const unreadCount = safeNotifications.filter((n) => !n.isRead).length;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPushStatus(Notification.permission);
+    }
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,6 +61,16 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleRequestPush = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const granted = await requestBrowserPushPermission();
+    if (granted) {
+      setPushStatus('granted');
+    } else if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPushStatus(Notification.permission);
+    }
+  };
+
   const getNotificationIcon = (type: string, status?: string) => {
     if (type === 'verification') {
       if (status === 'approved') return <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />;
@@ -44,14 +78,35 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       if (status === 'reverification_required') return <AlertCircle className="w-4 h-4 text-purple-600 shrink-0" />;
       return <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />;
     }
+    if (type === 'chat' || type === 'message') {
+      return <MessageSquare className="w-4 h-4 text-sky-600 shrink-0" />;
+    }
+    if (type === 'hire_request' || type === 'quote' || type === 'quote_received') {
+      return <Briefcase className="w-4 h-4 text-indigo-600 shrink-0" />;
+    }
+    if (type === 'job_status' || type === 'job_completed') {
+      return <Clock className="w-4 h-4 text-emerald-600 shrink-0" />;
+    }
+    if (type === 'commission' || type === 'payment' || type === 'service_fee') {
+      return <DollarSign className="w-4 h-4 text-amber-600 shrink-0" />;
+    }
     return <Info className="w-4 h-4 text-slate-500 shrink-0" />;
   };
 
   const handleNotificationClick = (notif: AppNotification) => {
     onMarkAsRead(notif.id);
+    setIsOpen(false);
+    if (notif.hireRequestId) {
+      setActiveRequestIdForDetails(notif.hireRequestId);
+    }
     if (notif.type === 'verification') {
       onNavigate('verification');
-      setIsOpen(false);
+    } else if (notif.type === 'hire_request') {
+      onNavigate('work_inbox');
+    } else if (notif.type === 'chat') {
+      onNavigate('activity');
+    } else if (notif.type === 'quote' || notif.type === 'job_status' || notif.type === 'commission') {
+      onNavigate('activity');
     }
   };
 
@@ -93,6 +148,25 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               </button>
             )}
           </div>
+
+          {/* Browser Push Permission Prompt */}
+          {pushStatus !== 'granted' && (
+            <div className="px-3.5 py-2.5 bg-blue-50/90 border-b border-blue-100 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <BellRing className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="text-[11px] text-blue-900 font-medium leading-tight">
+                  কাজের তাৎক্ষণিক আপডেট পেতে পুশ নোটিফিকেশন চালু করুন
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRequestPush}
+                className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shrink-0 cursor-pointer shadow-2xs"
+              >
+                অনুমতি দিন
+              </button>
+            </div>
+          )}
 
           <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
             {safeNotifications.length === 0 ? (

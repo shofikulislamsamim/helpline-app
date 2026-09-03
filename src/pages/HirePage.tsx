@@ -11,7 +11,10 @@ import {
   UserCheck, 
   Sparkles, 
   Clock, 
-  X 
+  X,
+  Navigation,
+  LocateFixed,
+  Compass
 } from 'lucide-react';
 import { UserProfile, HireRequest } from '../types';
 import { useHire } from '../context/HireContext';
@@ -20,6 +23,11 @@ import { WorkerCard } from '../components/hire/WorkerCard';
 import { WorkerProfileModal } from '../components/hire/WorkerProfileModal';
 import { HireRequestModal } from '../components/hire/HireRequestModal';
 import { PROFESSIONS_LIST } from '../lib/professionsData';
+import { 
+  CustomerLocationQuery, 
+  sortWorkersByProximity, 
+  getWorkerDistanceResult 
+} from '../lib/geoDistance';
 
 interface HirePageProps {
   onBack?: () => void;
@@ -42,6 +50,48 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
   const [onlyVerified, setOnlyVerified] = useState<boolean>(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  // Geolocation & Proximity States
+  const [customerLocation, setCustomerLocation] = useState<CustomerLocationQuery>(() => ({
+    division: userProfile.presentAddress?.division || 'ঢাকা',
+    district: userProfile.presentAddress?.district || 'ঢাকা',
+    upazila: userProfile.presentAddress?.upazila || 'মিরপুর (১০ নং সেক্টর)',
+    coordinates: userProfile.currentLocation?.coordinates || { latitude: 23.8069, longitude: 90.3687 },
+  }));
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationSuccessMsg, setLocationSuccessMsg] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'experience' | 'jobs'>('distance');
+  const [maxDistanceKm, setMaxDistanceKm] = useState<number>(0); // 0 = all distances
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationSuccessMsg('ব্রাউজারে Geolocation সাপোর্ট নেই');
+      setTimeout(() => setLocationSuccessMsg(null), 3000);
+      return;
+    }
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsGettingLocation(false);
+        setCustomerLocation((prev) => ({
+          ...prev,
+          coordinates: {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          },
+        }));
+        setLocationSuccessMsg('লাইভ জিপিএস লোকেশন সক্রিয় হয়েছে!');
+        setTimeout(() => setLocationSuccessMsg(null), 3000);
+      },
+      (err) => {
+        setIsGettingLocation(false);
+        console.warn('Geolocation notice:', err);
+        setLocationSuccessMsg('ডিফল্ট মিরপুর, ঢাকা লোকেশন ব্যবহার হচ্ছে');
+        setTimeout(() => setLocationSuccessMsg(null), 3000);
+      },
+      { timeout: 8000 }
+    );
+  };
+
   // Modal states
   const [selectedWorkerForProfile, setSelectedWorkerForProfile] = useState<UserProfile | null>(null);
   const [selectedWorkerForHire, setSelectedWorkerForHire] = useState<UserProfile | null>(null);
@@ -59,11 +109,12 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
   // Filter workers based on criteria
   const filteredWorkers = useMemo(() => {
     return workers.filter((w) => {
-      // Must have 'worker' capability
-      if (!w.capabilities || !w.capabilities.includes('worker')) return false;
+      // Must have 'worker' capability or role
+      const hasWorkerRole = w.capabilities?.includes('worker') || w.roles?.includes('worker');
+      if (!hasWorkerRole) return false;
 
-      // Verification check if required
-      if (onlyVerified && w.verificationStatus !== 'verified') return false;
+      // Verification check if required (support both verified and approved)
+      if (onlyVerified && w.verificationStatus !== 'verified' && w.verificationStatus !== 'approved') return false;
 
       // Online filter
       if (onlyOnline && !w.isOnline) return false;
@@ -127,9 +178,42 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
     onlyVerified,
   ]);
 
+  // Proximity & Sorting Processor
+  const processedWorkers = useMemo(() => {
+    let result = [...filteredWorkers];
+
+    // Optional Max Distance filter (for workers with distance data)
+    if (maxDistanceKm > 0) {
+      result = result.filter((w) => {
+        const distRes = getWorkerDistanceResult(w, customerLocation);
+        if (distRes.matchType === 'live_gps' && distRes.distanceKm !== undefined) {
+          return distRes.distanceKm <= maxDistanceKm;
+        }
+        return true; // Keep fallback matches
+      });
+    }
+
+    // Sorting
+    if (sortBy === 'distance') {
+      result = sortWorkersByProximity(result, customerLocation);
+    } else if (sortBy === 'rating') {
+      result = result.sort((a, b) => (b.rating || 5.0) - (a.rating || 5.0));
+    } else if (sortBy === 'experience') {
+      result = result.sort((a, b) => {
+        const expA = a.experiences?.[0]?.years || 1;
+        const expB = b.experiences?.[0]?.years || 1;
+        return expB - expA;
+      });
+    } else if (sortBy === 'jobs') {
+      result = result.sort((a, b) => (b.completedJobsCount || 0) - (a.completedJobsCount || 0));
+    }
+
+    return result;
+  }, [filteredWorkers, customerLocation, sortBy, maxDistanceKm]);
+
   // Separate into Online and Offline workers
-  const onlineWorkers = filteredWorkers.filter((w) => w.isOnline);
-  const offlineWorkers = filteredWorkers.filter((w) => !w.isOnline);
+  const onlineWorkers = processedWorkers.filter((w) => w.isOnline);
+  const offlineWorkers = processedWorkers.filter((w) => !w.isOnline);
 
   const handleHireSuccess = (request: HireRequest) => {
     setSelectedWorkerForHire(null);
@@ -224,6 +308,78 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
                 {tag.label}
               </button>
             ))}
+          </div>
+
+          {/* Real-time Location & Sort Bar */}
+          <div className="mt-4 p-3 rounded-2xl bg-blue-50/70 border border-blue-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-blue-600 text-white shrink-0">
+                <LocateFixed className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-slate-800">
+                    আপনার অনুসন্ধান অবস্থান: {customerLocation.upazila || customerLocation.district || 'ঢাকা'}
+                  </span>
+                  {customerLocation.coordinates && (
+                    <span className="text-[10px] text-blue-700 bg-blue-100/70 px-1.5 py-0.5 rounded font-medium">
+                      জিপিএস স্থানাঙ্ক সংযুক্ত
+                    </span>
+                  )}
+                  {locationSuccessMsg && (
+                    <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-bold animate-fadeIn">
+                      ✓ {locationSuccessMsg}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  অনলাইন কর্মীদের সাথে রিয়েল-টাইম দূরত্ব গণনায় ব্যবহৃত হচ্ছে
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-stretch lg:self-auto shrink-0 flex-wrap">
+              <button
+                type="button"
+                onClick={handleGetCurrentLocation}
+                disabled={isGettingLocation}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-blue-700 border border-blue-200 text-xs font-bold transition shadow-2xs cursor-pointer disabled:opacity-60"
+              >
+                <Navigation className={`w-3.5 h-3.5 text-blue-600 ${isGettingLocation ? 'animate-spin' : ''}`} />
+                <span>{isGettingLocation ? 'লোকেশন লোড হচ্ছে...' : 'লাইভ লোকেশন নিন'}</span>
+              </button>
+
+              {/* Sort Selector */}
+              <div className="flex items-center gap-1 bg-white px-2 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-500 font-semibold shrink-0">বাছাই:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                >
+                  <option value="distance">📍 দূরত্ব অনুসারে (নিকটবর্তী আগে)</option>
+                  <option value="rating">⭐ সর্বোচ্চ রেটিং</option>
+                  <option value="experience">⏱️ অভিজ্ঞতা (বছর)</option>
+                  <option value="jobs">💼 সম্পন্ন কাজ</option>
+                </select>
+              </div>
+
+              {/* Distance Radius Filter */}
+              <div className="flex items-center gap-1 bg-white px-2 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-500 font-semibold shrink-0">ব্যাসার্ধ:</span>
+                <select
+                  value={maxDistanceKm}
+                  onChange={(e) => setMaxDistanceKm(Number(e.target.value))}
+                  className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+                >
+                  <option value={0}>সকল দূরত্ব</option>
+                  <option value={3}>৩ কিমি-এর মধ্যে</option>
+                  <option value={5}>৫ কিমি-এর মধ্যে</option>
+                  <option value={10}>১০ কিমি-এর মধ্যে</option>
+                  <option value={20}>২০ কিমি-এর মধ্যে</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -377,6 +533,7 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
               <WorkerCard
                 key={worker.userId}
                 worker={worker}
+                customerLocation={customerLocation}
                 onViewProfile={(w) => setSelectedWorkerForProfile(w)}
                 onHireRequest={(w) => setSelectedWorkerForHire(w)}
               />
@@ -410,6 +567,7 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
               <WorkerCard
                 key={worker.userId}
                 worker={worker}
+                customerLocation={customerLocation}
                 onViewProfile={(w) => setSelectedWorkerForProfile(w)}
                 onHireRequest={(w) => setSelectedWorkerForHire(w)}
               />
@@ -422,6 +580,7 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
       {selectedWorkerForProfile && (
         <WorkerProfileModal
           worker={selectedWorkerForProfile}
+          customerLocation={customerLocation}
           onClose={() => setSelectedWorkerForProfile(null)}
           onHireRequest={(w) => {
             setSelectedWorkerForProfile(null);
