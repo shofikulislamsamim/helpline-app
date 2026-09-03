@@ -1,0 +1,130 @@
+import { AppSettings, PresentAddress } from '../types';
+
+export const DEFAULT_APP_SETTINGS: AppSettings = {
+  subscriptionMode: 'free',
+  dailyRate: 0,
+  monthlyRate: 0,
+  yearlyRate: 0,
+  paymentNumbers: {
+    bkash: '01712-345678 (পার্সোনাল)',
+    nagad: '01812-345678 (পার্সোনাল)',
+    rocket: '01912-345678 (পার্সোনাল)',
+  },
+  hotlineNumber: '09612-435777',
+  supportEmail: 'support@helplinebd.com',
+  supportWhatsApp: '+8801712345678',
+  emergencyNotice: 'HelpLine একটি সংযোগকারী প্ল্যাটফর্ম। কাজের চুক্তি, রাইড, ডেলিভারি বা আর্থিক লেনদেনের পূর্বে উভয় পক্ষ নিজ দায়িত্বে যাচাই করে নিন।',
+  searchRadiusKm: 15,
+  featureFlags: {
+    hireModule: true,
+    workModule: true,
+    jobsModule: true,
+    rideModule: true,
+    deliveryModule: true,
+    buySellModule: true,
+  },
+};
+
+/**
+ * Bangladesh Administrative Divisions foundation
+ * Ready to hook into comprehensive National Geo-Database
+ */
+export const BD_DIVISIONS = [
+  { id: 'dhaka', nameBn: 'ঢাকা', nameEn: 'Dhaka' },
+  { id: 'chattogram', nameBn: 'চট্টগ্রাম', nameEn: 'Chattogram' },
+  { id: 'rajshahi', nameBn: 'রাজশাহী', nameEn: 'Rajshahi' },
+  { id: 'khulna', nameBn: 'খুলনা', nameEn: 'Khulna' },
+  { id: 'barishal', nameBn: 'বরিশাল', nameEn: 'Barishal' },
+  { id: 'sylhet', nameBn: 'সিলেট', nameEn: 'Sylhet' },
+  { id: 'rangpur', nameBn: 'রংপুর', nameEn: 'Rangpur' },
+  { id: 'mymensingh', nameBn: 'ময়মনসিংহ', nameEn: 'Mymensingh' },
+];
+
+export const INITIAL_USER_PROFILE = {
+  userId: 'user-demo-01',
+  fullName: 'মো: রফিকুল ইসলাম',
+  bio: 'অভিজ্ঞ ইলেকট্রিশিয়ান ও টেকনিশিয়ান। ঢাকা মিরপুর এলাকায় দ্রুত সেবা প্রদান করি। যেকোনো ধরনের ওয়্যারিং ও ইলেকট্রিক সমস্যার বিশ্বস্ত সমাধান।',
+  phoneNumber: '০১৭০০-১২৩৪৫৬',
+  email: 'rafiqul@example.com',
+  isOnline: true,
+  availabilityUpdatedAt: new Date().toISOString(),
+  lastActiveAt: new Date().toISOString(),
+  verificationStatus: 'unverified' as const,
+  roles: ['worker', 'customer'] as ('worker' | 'customer')[],
+  capabilities: ['worker', 'customer'] as ('worker' | 'customer')[],
+  professions: ['ইলেকট্রিশিয়ান (Electrician)', 'এয়ার কন্ডিশন সার্ভিসিং'],
+  mainProfession: 'ইলেকট্রিশিয়ান (Electrician)',
+  skills: [
+    'Fan Installation (ফ্যান ফিটিং)',
+    'House Wiring (হাউস ওয়্যারিং)',
+    'Switch Repair (সুইচবোর্ড মেরামত)',
+    'MCB Installation (সার্কিট ব্রেকার)',
+    'Generator Servicing (জেনারেটর সার্ভিসিং)',
+  ],
+  experiences: [
+    {
+      profession: 'ইলেকট্রিশিয়ান (Electrician)',
+      years: 5,
+      description: 'বাণিজ্যিক ভবন ও আবাসিক অ্যাপার্টমেন্টের উচ্চ ক্ষমতাসম্পন্ন বৈদ্যুতিক কাজ ও মেইন প্যানেল ওয়্যারিং।',
+      isMain: true,
+    },
+    {
+      profession: 'এয়ার কন্ডিশন সার্ভিসিং',
+      years: 3,
+      description: 'ইনভার্টার এসি ইন্সটলেশন এবং গ্যাস লিকেজ টেস্ট ও সমাধান।',
+      isMain: false,
+    },
+  ],
+  workHistories: [
+    {
+      id: 'wh-1',
+      company: 'ইস্টার্ন ইঞ্জিনিয়ারিং অ্যান্ড সার্ভিসেস',
+      position: 'সিনিয়র টেকনিশিয়ান',
+      startDate: '২০২১',
+      endDate: 'চলমান',
+      currentlyWorking: true,
+      location: 'মিরপুর, ঢাকা',
+      jobDetails: 'মিরপুর ও উত্তরা জোনের গ্রাহকদের ইলেকট্রিক্যাল এবং এসি ট্রাবলশুটিং সমাধান প্রদান।',
+    },
+    {
+      id: 'wh-2',
+      company: 'রহমান ইলেকট্রিক সেন্টার',
+      position: 'সহকারী ইলেকট্রিশিয়ান',
+      startDate: '২০১৯',
+      endDate: '২০২১',
+      currentlyWorking: false,
+      location: 'পল্লবী, ঢাকা',
+      jobDetails: 'হাউস ওয়্যারিং ও নতুন বিল্ডিং সংযোগ স্থাপন।',
+    },
+  ],
+  serviceAreas: [
+    'মিরপুর (১০ নং সেক্টর)',
+    'মিরপুর-২',
+    'পল্লবী',
+    'উত্তরা (সেক্টর ৩ ও ৭)',
+  ],
+  presentAddress: {
+    division: 'ঢাকা',
+    district: 'ঢাকা',
+    upazila: 'মিরপুর (১০ নং সেক্টর)',
+    unionWard: 'ওয়ার্ড নং ৩',
+    areaRoad: 'রোড ৪, ব্লক বি, বাড়ি ১২',
+    fullAddress: 'বাড়ি ১২, রোড ৪, ব্লক বি, মিরপুর-১০, ঢাকা',
+  } as PresentAddress,
+  currentLocation: {
+    latitude: 23.8067,
+    longitude: 90.3687,
+    accuracyMeters: 15,
+    lastUpdated: new Date().toISOString(),
+    formattedAddress: 'মিরপুর ১০, ঢাকা, বাংলাদেশ',
+    sharePermissionGranted: true,
+  },
+  rating: 4.8,
+  reviewCount: 24,
+  completedJobsCount: 42,
+  joinedDate: '২০২৪',
+  subscriptionPlan: 'free' as const,
+  subscriptionActive: true,
+  profileCompletedPercentage: 85,
+  isProfileSetupComplete: true,
+};

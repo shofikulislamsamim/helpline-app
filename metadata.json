@@ -1,0 +1,6 @@
+{
+  "name": "HelpLine",
+  "description": "A Bengali-first all-in-one local marketplace platform connecting workers, jobs, rides, deliveries, and trade across Bangladesh.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

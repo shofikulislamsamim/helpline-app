@@ -1,0 +1,100 @@
+{
+  "collections": [
+    {
+      "name": "users",
+      "description": "Core authentication user records, linking to auth uid, contact info, and timestamp"
+    },
+    {
+      "name": "userProfiles",
+      "description": "One unified profile per user containing availability, rating, skills, professions, present address, location, verification status"
+    },
+    {
+      "name": "userRoles",
+      "description": "User capabilities and roles records, managing active and assigned marketplace capabilities per user"
+    },
+    {
+      "name": "customCategoryRequests",
+      "description": "User-submitted custom professions and service categories pending administrative review, usable immediately by submitter"
+    },
+    {
+      "name": "appSettings",
+      "description": "Centralized admin-controlled system configuration (free/paid subscription mode, pricing, hotline number, bKash/Nagad/Rocket numbers, feature toggles)"
+    },
+    {
+      "name": "policies",
+      "description": "Platform policies including Terms, Privacy, Safety, Community Guidelines, Prohibited Items"
+    },
+    {
+      "name": "categories",
+      "description": "Hierarchical categories for workers, jobs, products, and services"
+    },
+    {
+      "name": "professions",
+      "description": "List of recognized professions (electrician, plumber, tutor, driver, etc.)"
+    },
+    {
+      "name": "skills",
+      "description": "Specific trade and vocational skills"
+    },
+    {
+      "name": "addresses",
+      "description": "Normalized Bangladesh administrative hierarchical address records (Division > District > Upazila > Ward > Village)"
+    },
+    {
+      "name": "verificationRequests",
+      "description": "NID, Smart Card, and trade certificate verification submissions pending admin approval"
+    },
+    {
+      "name": "serviceRequests",
+      "description": "Hire module requests posted by users seeking workers"
+    },
+    {
+      "name": "jobs",
+      "description": "Jobs module listings posted by employers"
+    },
+    {
+      "name": "rides",
+      "description": "Ride sharing requests and trip records"
+    },
+    {
+      "name": "deliveries",
+      "description": "Send/parcel delivery requests and courier dispatch tracking"
+    },
+    {
+      "name": "productListings",
+      "description": "Buy & Sell local marketplace product listings"
+    },
+    {
+      "name": "conversations",
+      "description": "Direct communication channels between users"
+    },
+    {
+      "name": "messages",
+      "description": "Individual chat messages within conversations"
+    },
+    {
+      "name": "reviews",
+      "description": "Ratings (1-5 stars) and feedback left after transactions or services"
+    },
+    {
+      "name": "complaints",
+      "description": "User reports, disputes, and incident reports to HelpLine support"
+    },
+    {
+      "name": "subscriptions",
+      "description": "User subscription states (free or paid packages, validity dates)"
+    },
+    {
+      "name": "paymentRequests",
+      "description": "Manual payment submissions (bKash/Nagad/Rocket TrxID, sender phone, amount) awaiting admin review"
+    },
+    {
+      "name": "notifications",
+      "description": "In-app alerts for system updates, requests, messages, and approvals"
+    },
+    {
+      "name": "adminUsers",
+      "description": "Authorized administrator accounts and permission roles"
+    }
+  ]
+}
