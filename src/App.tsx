@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppSettingsProvider } from './context/AppSettingsContext';
-import { HireProvider } from './context/HireContext';
+import { HireProvider, useHire } from './context/HireContext';
 import { Navbar } from './components/layout/Navbar';
 import { BottomNav } from './components/layout/BottomNav';
 import { AuthModal } from './components/auth/AuthModal';
@@ -21,7 +21,14 @@ import { ModuleId } from './types';
 function MainApp() {
   const [currentView, setCurrentView] = useState<string>('home');
   const [activeModule, setActiveModule] = useState<ModuleId>('hire');
-  const { isAuthModalOpen, closeAuthModal } = useAuth();
+  const { userProfile, isAuthModalOpen, closeAuthModal } = useAuth();
+  const { hireRequests } = useHire();
+
+  const newRequestsCount = hireRequests.filter(
+    (r) =>
+      (r.workerId === userProfile.userId || r.workerId === 'worker-01-shafiq' || (!r.workerId && userProfile.capabilities?.includes('worker'))) &&
+      (r.status === 'REQUESTED' || r.status === 'QUOTED')
+  ).length;
 
   const handleSelectModule = (moduleId: ModuleId) => {
     setActiveModule(moduleId);
@@ -79,14 +86,21 @@ function MainApp() {
               <button
                 id="sidebar-nav-work"
                 onClick={() => handleSelectModule('work')}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold text-left transition cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold text-left transition cursor-pointer ${
                   currentView === 'module_work' || currentView === 'work_inbox'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'hover:bg-slate-800 text-slate-300'
                 }`}
               >
-                <span className="text-base">👷</span>
-                <span>কর্মী ইনবক্স (Work)</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-base">👷</span>
+                  <span>Work / কাজ করতে চাই</span>
+                </div>
+                {newRequestsCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black animate-pulse">
+                    {newRequestsCount}
+                  </span>
+                )}
               </button>
               <button
                 id="sidebar-nav-search"

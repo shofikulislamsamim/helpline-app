@@ -1,4 +1,4 @@
-import { AppSettings, PresentAddress } from '../types';
+import { AppSettings, PresentAddress, UserProfile } from '../types';
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   subscriptionMode: 'free',
@@ -40,7 +40,7 @@ export const BD_DIVISIONS = [
   { id: 'mymensingh', nameBn: 'ময়মনসিংহ', nameEn: 'Mymensingh' },
 ];
 
-export const INITIAL_USER_PROFILE = {
+export const INITIAL_USER_PROFILE: UserProfile = {
   userId: 'user-demo-01',
   fullName: 'মো: রফিকুল ইসলাম',
   bio: 'অভিজ্ঞ ইলেকট্রিশিয়ান ও টেকনিশিয়ান। ঢাকা মিরপুর এলাকায় দ্রুত সেবা প্রদান করি। যেকোনো ধরনের ওয়্যারিং ও ইলেকট্রিক সমস্যার বিশ্বস্ত সমাধান।',
@@ -52,7 +52,40 @@ export const INITIAL_USER_PROFILE = {
   verificationStatus: 'unverified' as const,
   roles: ['worker', 'customer'] as ('worker' | 'customer')[],
   capabilities: ['worker', 'customer'] as ('worker' | 'customer')[],
-  professions: ['ইলেকট্রিশিয়ান (Electrician)', 'এয়ার কন্ডিশন সার্ভিসিং'],
+  serviceCategoryModes: ['physical'],
+  userProfessions: [
+    {
+      id: 'prof_electrician',
+      nameBn: 'ইলেকট্রিশিয়ান (Electrician)',
+      nameEn: 'Electrician',
+      categoryMode: 'physical',
+      isCustom: false,
+      skills: [
+        'Fan Installation (ফ্যান ফিটিং)',
+        'House Wiring (হাউস ওয়্যারিং)',
+        'Switch Repair (সুইচবোর্ড মেরামত)',
+        'MCB Installation (সার্কিট ব্রেকার)',
+        'Generator Servicing (জেনারেটর সার্ভিসিং)',
+      ],
+      yearsOfExperience: 5,
+      isMain: true,
+    },
+    {
+      id: 'prof_ac',
+      nameBn: 'এসি টেকনিশিয়ান (AC Technician)',
+      nameEn: 'AC Technician',
+      categoryMode: 'physical',
+      isCustom: false,
+      skills: [
+        'AC Installation (এসি ফিটিং ও স্থানান্তর)',
+        'Gas Refill (গ্যাস রিফিল ও লিক চেক)',
+        'Compressor Repair (কম্প্রেসার মেরামত)',
+      ],
+      yearsOfExperience: 3,
+      isMain: false,
+    },
+  ],
+  professions: ['ইলেকট্রিশিয়ান (Electrician)', 'এসি টেকনিশিয়ান (AC Technician)'],
   mainProfession: 'ইলেকট্রিশিয়ান (Electrician)',
   skills: [
     'Fan Installation (ফ্যান ফিটিং)',
@@ -97,6 +130,46 @@ export const INITIAL_USER_PROFILE = {
       jobDetails: 'হাউস ওয়্যারিং ও নতুন বিল্ডিং সংযোগ স্থাপন।',
     },
   ],
+  serviceTypes: ['on_demand', 'daily', 'contractual', 'remote'],
+  searchKeywords: [
+    'ইলেকট্রিশিয়ান',
+    'এসি মিস্ত্রি',
+    'হাউস ওয়্যারিং',
+    'মিরপুর ইলেকট্রিক টেকনিশিয়ান',
+    'জরুরি ফ্যান মেরামত',
+    'আইপিএস সংযোগ',
+  ],
+  portfolio: [
+    {
+      id: 'port-1',
+      title: 'মিরপুর ডিওএইচএস ৪-রুম ডুপ্লেক্স হাউস ওয়্যারিং',
+      description: 'সম্পূর্ণ মডার্ন কনসিল্ড ওয়্যারিং এবং ডিস্ট্রিবিউশন বোর্ড সেটআপ।',
+      imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=80',
+      completedAt: '২০২৪-০১-১৫',
+      profession: 'ইলেকট্রিশিয়ান (Electrician)',
+    },
+    {
+      id: 'port-2',
+      title: 'উত্তরা কমার্শিয়াল স্পেস এসি ইনস্টলেশন ও মাস্টার পিসিবি রিপেয়ার',
+      description: '২ টন ইনভার্টার স্প্লিট এসি ফিটিং এবং ড্রেনেজ লাইন ফিক্সিং।',
+      imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
+      completedAt: '২০২৪-০২-২০',
+      profession: 'এয়ার কন্ডিশন সার্ভিসিং',
+    },
+  ],
+  pricing: {
+    hourlyRate: 350,
+    dailyRate: 1200,
+    visitFee: 200,
+    isNegotiable: true,
+    rateDescription: 'মিরপুর এলাকায় ভিজিট ফি ৳২০০। কাজের প্রকৃতি ও পার্টস ক্রয়ের ভিত্তিতে মোট চার্জ আলোচনা সাপেক্ষে নির্ধারিত হয়।',
+  },
+  privacySettings: {
+    phoneVisibility: 'public',
+    addressVisibility: 'area_only',
+    showLiveLocation: true,
+    showOnlineStatus: true,
+  },
   serviceAreas: [
     'মিরপুর (১০ নং সেক্টর)',
     'মিরপুর-২',

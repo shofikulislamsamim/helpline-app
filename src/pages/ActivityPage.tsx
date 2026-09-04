@@ -269,6 +269,11 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
                     <p className="text-base font-black text-blue-700 font-mono">
                       ৳{req.agreedPrice || req.quote?.estimatedPrice || req.budget || '—'}
                     </p>
+                    {req.serviceFeeBreakdown && (
+                      <span className="inline-block text-[9px] font-semibold text-blue-700 bg-blue-100/80 px-1.5 py-0.5 rounded">
+                        প্ল্যাটফর্ম ফি: ৳{req.serviceFeeBreakdown.totalServiceFee} (প্রস্তুতিমূলক)
+                      </span>
+                    )}
                     {req.quote?.quoteNote && (
                       <p className="text-[10px] text-slate-500 italic truncate">
                         "{req.quote.quoteNote}"
