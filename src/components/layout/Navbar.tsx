@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             title="বর্তমান ঠিকানা পরিবর্তন করতে প্রোফাইলে যান"
           >
             <MapPin className="w-3.5 h-3.5 text-blue-600" />
-            <span className="truncate max-w-[140px]">{userProfile.presentAddress?.division || 'ঢাকা'} ({userProfile.presentAddress?.district || 'ঢাকা'})</span>
+            <span className="truncate max-w-[140px]">{userProfile.presentAddress.division} ({userProfile.presentAddress.district})</span>
           </button>
         </div>
 

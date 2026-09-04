@@ -12,24 +12,19 @@ import {
   Award, 
   FileText, 
   Image as ImageIcon, 
-  AlertCircle,
-  Navigation
+  AlertCircle 
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { useHire } from '../../context/HireContext';
-import { getWorkerDistanceResult, CustomerLocationQuery } from '../../lib/geoDistance';
-import { isWorkerInServiceType, getSafeWorkerLocationDisplay } from '../../lib/hireSearchEngine';
 
 interface WorkerProfileModalProps {
   worker: UserProfile | null;
-  customerLocation?: CustomerLocationQuery;
   onClose: () => void;
   onHireRequest: (worker: UserProfile) => void;
 }
 
 export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
   worker,
-  customerLocation,
   onClose,
   onHireRequest,
 }) => {
@@ -39,14 +34,10 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
   if (!worker) return null;
 
   const isOnline = worker.isOnline;
-  const isVerified = worker.verificationStatus === 'verified' || worker.verificationStatus === 'approved';
-  const mainProf = worker.mainProfession || worker.professions?.[0] || 'দক্ষ কারিগর';
+  const isVerified = worker.verificationStatus === 'verified';
+  const mainProf = worker.mainProfession || worker.professions[0] || 'দক্ষ কারিগর';
   const stats = getWorkerStats(worker.userId);
   const reviews = getWorkerReviews(worker.userId);
-  const isDigital = isWorkerInServiceType(worker, 'digital');
-
-  const distanceResult = !isDigital && worker ? getWorkerDistanceResult(worker, customerLocation) : null;
-  const safeLocation = getSafeWorkerLocationDisplay(worker, isDigital ? 'digital' : 'physical');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fadeIn">
@@ -174,117 +165,23 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
             </div>
           )}
 
-          {/* Pricing & Rate Card */}
-          {worker.pricing && (
-            <div>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                রেট ও মজুরি বিবরণী (Pricing & Rates)
-              </h4>
-              <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-xs space-y-1.5">
-                {worker.pricing.rateDescription && (
-                  <p className="font-bold text-emerald-900 text-sm">{worker.pricing.rateDescription}</p>
-                )}
-                <div className="flex flex-wrap gap-4 text-emerald-800">
-                  {worker.pricing.hourlyRate && <span>⏱️ ঘণ্টা প্রতি: ৳{worker.pricing.hourlyRate}</span>}
-                  {worker.pricing.dailyRate && <span>📅 দৈনিক রেট: ৳{worker.pricing.dailyRate}</span>}
-                  {worker.pricing.visitFee && <span>🚗 প্রাথমিক ভিজিট ফি: ৳{worker.pricing.visitFee}</span>}
-                  {worker.pricing.isNegotiable && (
-                    <span className="font-semibold text-emerald-700">✓ কাজের পরিধি অনুযায়ী আলোচনা সাপেক্ষ</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Portfolio Showcase (For Digital and Skilled Workers) */}
-          {worker.portfolio && worker.portfolio.length > 0 && (
-            <div>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-                <span>পূর্ববর্তী কাজের পোর্টফোলিও ({worker.portfolio.length})</span>
-                <span className="text-[11px] text-violet-700 font-bold">Portfolio Gallery</span>
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {worker.portfolio.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-xs">
-                    {item.imageUrl && (
-                      <img 
-                        src={item.imageUrl} 
-                        alt={item.title} 
-                        className="w-full h-36 object-cover bg-slate-100"
-                      />
-                    )}
-                    <div className="p-3 space-y-1">
-                      <h5 className="font-bold text-slate-800 text-xs">{item.title}</h5>
-                      {item.description && (
-                        <p className="text-[11px] text-slate-500 leading-snug line-clamp-2">
-                          {item.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Service Areas & Location Display */}
+          {/* Service Areas & Address */}
           <div>
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-              {isDigital ? 'সেবা প্রদান পদ্ধতি ও অবস্থান' : 'সার্ভিস এলাকা ও বর্তমান অবস্থান'}
+              সার্ভিস এলাকা ও বর্তমান অবস্থান
             </h4>
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs text-slate-700">
-              {isDigital ? (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-violet-800 font-bold">
-                    <span className="text-base">💻</span>
-                    <span>ডিজিটাল / ফ্রিল্যান্স সেবা (সারা বাংলাদেশ থেকে রিমোট অর্ডার প্রযোজ্য)</span>
-                  </div>
-                  <p className="text-slate-600 text-[11px]">
-                    অনলাইনে চ্যাট ও ফাইল আদান-প্রদানের মাধ্যমে কাজ সম্পন্ন করা হবে। কোনো ফিজিক্যাল যাতায়াত বা দূরত্বের প্রয়োজন নেই।
-                  </p>
-                  <p className="text-slate-500 text-[11px] pt-1 border-t border-slate-200/60">
-                    <strong>প্রফেশনালের এলাকা:</strong> {safeLocation}
-                  </p>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>
+                  <strong>বর্তমান ঠিকানা:</strong> {worker.presentAddress.division}, {worker.presentAddress.district} ({worker.presentAddress.upazila})
+                </span>
+              </div>
+              {worker.serviceAreas && worker.serviceAreas.length > 0 && (
+                <div className="flex items-start gap-2 pt-1 border-t border-slate-200/60">
+                  <span className="font-semibold text-slate-800 shrink-0">কাজের আওতাভুক্ত এলাকা:</span>
+                  <span className="text-slate-600">{worker.serviceAreas.join(', ')}</span>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>
-                      <strong>কর্মীর এলাকা:</strong> {safeLocation}
-                    </span>
-                  </div>
-                  {worker.serviceAreas && worker.serviceAreas.length > 0 && (
-                    <div className="flex items-start gap-2 pt-1 border-t border-slate-200/60">
-                      <span className="font-semibold text-slate-800 shrink-0">কাজের আওতাভুক্ত এলাকা:</span>
-                      <span className="text-slate-600">{worker.serviceAreas.join(', ')}</span>
-                    </div>
-                  )}
-                  {distanceResult && (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-200/60 bg-blue-50/50 -mx-3.5 -mb-3.5 p-3 rounded-b-xl">
-                      <div className="flex items-center gap-1.5">
-                        {distanceResult.matchType === 'live_gps' && isOnline ? (
-                          <>
-                            <Navigation className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                            <span className="text-blue-800 font-bold">
-                              আপনার অবস্থান থেকে দূরত্ব: {distanceResult.formattedDistance}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span className="text-emerald-800 font-semibold">
-                              অবস্থান মিল: {distanceResult.matchLabelBn}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <span className="text-[11px] font-medium text-slate-500">
-                        {distanceResult.matchType === 'live_gps' && isOnline ? 'লাইভ জিপিএস স্থানাঙ্ক ভিত্তিক' : 'এলাকা/উপজেলা ভিত্তিক মিল'}
-                      </span>
-                    </div>
-                  )}
-                </>
               )}
             </div>
           </div>

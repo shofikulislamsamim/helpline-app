@@ -8,8 +8,7 @@ import {
   Conversation, 
   UserComplaint, 
   HireAdminSettings, 
-  UserProfile,
-  ServiceFeeBreakdown 
+  UserProfile 
 } from '../types';
 import { 
   DEFAULT_HIRE_ADMIN_SETTINGS, 
@@ -17,7 +16,6 @@ import {
   SAMPLE_SEED_HIRE_REQUESTS, 
   SAMPLE_SEED_REVIEWS 
 } from '../lib/hireData';
-import { calculateServiceFee } from '../lib/feeCalculator';
 import { useAuth } from './AuthContext';
 import { doc, setDoc, getDocs, collection, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -68,9 +66,6 @@ interface HireContextType {
   // Ratings & Complaints
   submitRating: (hireRequestId: string, rating: number, comment: string) => Promise<void>;
   submitComplaint: (hireRequestId: string, reason: string, details: string) => Promise<UserComplaint>;
-  updateComplaintStatus: (complaintId: string, status: 'pending' | 'investigating' | 'resolved' | 'dismissed', adminNotes?: string) => Promise<void>;
-  // Fees & Commission
-  calculateFee: (agreedPrice: number) => ServiceFeeBreakdown;
   // Chat & Messages
   getConversationByRequestId: (requestId: string) => Conversation | undefined;
   getMessagesForConversation: (conversationId: string) => ChatMessage[];
@@ -79,15 +74,12 @@ interface HireContextType {
   getWorkerById: (workerId: string) => UserProfile | undefined;
   getWorkerStats: (workerId: string) => WorkerPerformanceStats;
   getWorkerReviews: (workerId: string) => ServiceReview[];
-  activeRequestIdForDetails: string | null;
-  setActiveRequestIdForDetails: (id: string | null) => void;
 }
 
 const HireContext = createContext<HireContextType | undefined>(undefined);
 
 export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userProfile, currentUser, addNotification } = useAuth();
-  const [activeRequestIdForDetails, setActiveRequestIdForDetails] = useState<string | null>(null);
 
   // Admin Settings
   const [adminSettings, setAdminSettings] = useState<HireAdminSettings>(() => {
@@ -107,16 +99,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('helpline_registered_workers');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const map = new Map<string, UserProfile>();
-          SAMPLE_SEED_WORKERS.forEach((w) => map.set(w.userId, w));
-          parsed.forEach((w: UserProfile) => {
-            const existing = map.get(w.userId);
-            map.set(w.userId, existing ? { ...existing, ...w } : w);
-          });
-          return Array.from(map.values());
-        }
+        return JSON.parse(saved);
       } catch (e) {
         console.error(e);
       }
@@ -251,8 +234,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Keep logged in user worker status in workers list if they have 'worker' capability
   useEffect(() => {
-    const isWorker = userProfile?.capabilities?.includes('worker') || userProfile?.roles?.includes('worker');
-    if (userProfile && isWorker && userProfile.professions && userProfile.professions.length > 0) {
+    if (userProfile && userProfile.capabilities.includes('worker') && userProfile.professions && userProfile.professions.length > 0) {
       setWorkers((prev) => {
         const index = prev.findIndex((w) => w.userId === userProfile.userId);
         if (index >= 0) {
@@ -348,12 +330,11 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('কর্মী খুঁজে পাওয়া যায়নি।');
     }
 
-    const isWorker = worker.capabilities?.includes('worker') || worker.roles?.includes('worker');
-    if (!isWorker) {
+    if (!worker.capabilities.includes('worker')) {
       throw new Error('এই ব্যবহারকারীর "কাজ করতে চাই" সক্ষমতা নেই।');
     }
 
-    if (adminSettings.requireVerificationForWork && worker.verificationStatus !== 'verified' && worker.verificationStatus !== 'approved') {
+    if (adminSettings.requireVerificationForWork && worker.verificationStatus !== 'verified') {
       throw new Error('এই কর্মী এখনও ভেরিফাইড নন। প্ল্যাটফর্ম সুরক্ষার জন্য শুধুমাত্র ভেরিফাইড কর্মীকে কাজের অনুরোধ পাঠানো যায়।');
     }
 
@@ -375,7 +356,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       workerName: worker.fullName,
       workerPhone: worker.phoneNumber,
       workerAvatar: worker.avatarUrl,
-      workerProfession: worker.mainProfession || worker.professions?.[0] || 'টেকনিশিয়ান',
+      workerProfession: worker.mainProfession || worker.professions[0] || 'টেকনিশিয়ান',
       workType: params.workType,
       description: params.description,
       workLocation: params.workLocation,
@@ -435,8 +416,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       recipientId: userProfile.userId,
       titleBn: 'কাজের অনুরোধ পাঠানো হয়েছে',
       messageBn: `আপনার অনুরোধ #${reqId} সফলভাবে ${worker.fullName}-এর কাছে পাঠানো হয়েছে। কর্মী খুব শীঘ্রই সাড়া দেবেন।`,
-      type: 'hire_request',
-      hireRequestId: reqId,
+      type: 'general',
       status: 'pending',
       isRead: false,
     });
@@ -446,8 +426,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       recipientId: worker.userId,
       titleBn: 'নতুন কাজের অনুরোধ এসেছে! (New Hire Request)',
       messageBn: `${userProfile.fullName} আপনার জন্য একটি নতুন কাজের অনুরোধ #${reqId} (${params.workType}) পাঠিয়েছেন। এখনই কোটেশন দিন।`,
-      type: 'hire_request',
-      hireRequestId: reqId,
+      type: 'general',
       status: 'pending',
       isRead: false,
     });
@@ -488,8 +467,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       recipientId: target.customerId,
       titleBn: `কোটেশন প্রাপ্তি: #${requestId}`,
       messageBn: `${target.workerName} আপনার অনুরোধে ৳${estimatedPrice} আনুমানিক কোটেশন প্রদান করেছেন। গ্রহণ বা বাতিল করতে ক্লিক করুন।`,
-      type: 'quote',
-      hireRequestId: requestId,
+      type: 'general',
       status: 'pending',
       isRead: false,
     });
@@ -534,7 +512,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const now = new Date().toISOString();
     const agreedPrice = target.quote?.estimatedPrice || target.budget || 500;
-    const feeBreakdown = calculateServiceFee(agreedPrice, adminSettings);
 
     setHireRequests((prev) =>
       prev.map((r) =>
@@ -543,7 +520,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ...r,
               status: 'ACCEPTED',
               agreedPrice,
-              serviceFeeBreakdown: feeBreakdown,
               acceptedAt: now,
             }
           : r
@@ -554,17 +530,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     addNotification({
       recipientId: target.workerId,
       titleBn: `কোটেশন গৃহীত হয়েছে! #${requestId}`,
-      messageBn: `অভিনন্দন! ${target.customerName} আপনার কোটেশন (৳${agreedPrice}) গ্রহণ করেছেন। প্ল্যাটফর্ম ফি বাদে আনুমানিক প্রাপ্য ৳${feeBreakdown.workerReceivable}। নির্ধারিত সময়ে কাজে রওনা দিন।`,
-      type: 'general',
-      status: 'pending',
-      isRead: false,
-    });
-
-    // Notify customer
-    addNotification({
-      recipientId: target.customerId,
-      titleBn: `কাজের চুক্তি সম্পন্ন হয়েছে! #${requestId}`,
-      messageBn: `${target.workerName}-এর সাথে ৳${agreedPrice} মূল্যে চুক্তি সম্পন্ন হয়েছে। কর্মী কিছুক্ষণের মধ্যে রওনা দেবেন।`,
+      messageBn: `অভিনন্দন! ${target.customerName} আপনার কোটেশন (৳${agreedPrice}) গ্রহণ করেছেন। নির্ধারিত সময়ে কাজে রওনা দিন।`,
       type: 'general',
       status: 'pending',
       isRead: false,
@@ -664,9 +630,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       patch.startedAt = now;
     } else if (nextStatus === 'WORK_COMPLETED') {
       patch.completedAt = now;
-      const finalPrice = target.agreedPrice || target.quote?.estimatedPrice || target.budget || 500;
-      patch.serviceFeeBreakdown = target.serviceFeeBreakdown || calculateServiceFee(finalPrice, adminSettings);
-
       // Increment worker's completedJobsCount in worker state
       setWorkers((prev) =>
         prev.map((w) =>
@@ -675,16 +638,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
             : w
         )
       );
-
-      // Worker notification for completion & fee summary
-      addNotification({
-        recipientId: target.workerId,
-        titleBn: `কাজ সম্পন্ন হিসেবে চিহ্নিত: #${requestId}`,
-        messageBn: `কাজটি সফলভাবে সম্পন্ন হয়েছে। মোট পারিশ্রমিক ৳${finalPrice} (প্ল্যাটফর্ম ফি বাদে প্রাপ্য ৳${patch.serviceFeeBreakdown.workerReceivable})।`,
-        type: 'general',
-        status: 'pending',
-        isRead: false,
-      });
     }
 
     setHireRequests((prev) =>
@@ -926,17 +879,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isRead: false,
     });
 
-    if (newComplaint.accusedUserId) {
-      addNotification({
-        recipientId: newComplaint.accusedUserId,
-        titleBn: `অভিযোগ পর্যালোচনা শুরু হয়েছে: #${complaintId}`,
-        messageBn: `অনুরোধ #${hireRequestId}-এ একটি অভিযোগ পর্যালোচনাধীন রয়েছে। হেল্পলাইন টিম এ বিষয়ে যোগাযোগ করতে পারে।`,
-        type: 'general',
-        status: 'pending',
-        isRead: false,
-      });
-    }
-
     try {
       await setDoc(doc(db, 'complaints', complaintId), newComplaint);
       if (target) {
@@ -952,89 +894,9 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newComplaint;
   };
 
-  const updateComplaintStatus = async (
-    complaintId: string,
-    status: 'pending' | 'investigating' | 'resolved' | 'dismissed',
-    adminNotes?: string
-  ) => {
-    const target = complaints.find((c) => c.id === complaintId);
-    if (!target) return;
-
-    const now = new Date().toISOString();
-    const patch = {
-      status,
-      adminNotes: adminNotes || target.adminNotes,
-      resolvedAt: status === 'resolved' || status === 'dismissed' ? now : undefined,
-    };
-
-    setComplaints((prev) =>
-      prev.map((c) => (c.id === complaintId ? { ...c, ...patch } : c))
-    );
-
-    const statusLabels: Record<string, string> = {
-      pending: 'অপেক্ষমাণ',
-      investigating: 'তদন্তাধীন',
-      resolved: 'মীমাংসিত / নিষ্পত্তি হয়েছে',
-      dismissed: 'বাতিল করা হয়েছে',
-    };
-
-    addNotification({
-      recipientId: target.complainantId,
-      titleBn: `অভিযোগ আপডেট: #${complaintId}`,
-      messageBn: `আপনার অভিযোগের স্ট্যাটাস পরিবর্তিত হয়ে '${statusLabels[status] || status}' হয়েছে। ${adminNotes ? `মন্তব্য: ${adminNotes}` : ''}`,
-      type: 'general',
-      status: 'pending',
-      isRead: false,
-    });
-
-    try {
-      await updateDoc(doc(db, 'complaints', complaintId), patch);
-    } catch (err) {
-      console.warn('Firestore complaint status sync notice:', err);
-    }
-  };
-
-  const calculateFee = (agreedPrice: number): ServiceFeeBreakdown => {
-    return calculateServiceFee(agreedPrice, adminSettings);
-  };
-
   // 9. Chat & Messages
   const getConversationByRequestId = (requestId: string): Conversation | undefined => {
-    const existing = conversations.find((c) => c.hireRequestId === requestId);
-    if (existing) return existing;
-
-    // Find request to initialize conversation dynamically
-    const req = hireRequests.find((r) => r.id === requestId);
-    if (req) {
-      const convId = req.conversationId || `conv-${req.id.toLowerCase()}`;
-      const now = new Date().toISOString();
-      const newConv: Conversation = {
-        id: convId,
-        hireRequestId: req.id,
-        participantIds: [req.customerId, req.workerId],
-        participants: {
-          [req.customerId]: {
-            name: req.customerName,
-            phone: req.customerPhone,
-            avatar: req.customerAvatar,
-            role: 'customer',
-          },
-          [req.workerId]: {
-            name: req.workerName,
-            phone: req.workerPhone,
-            avatar: req.workerAvatar,
-            role: 'worker',
-          },
-        },
-        lastMessage: `কাজের অনুরোধ: ${req.workType}`,
-        lastMessageTimestamp: req.createdAt,
-        createdAt: req.createdAt,
-        updatedAt: now,
-      };
-      setConversations((prev) => [newConv, ...prev]);
-      return newConv;
-    }
-    return undefined;
+    return conversations.find((c) => c.hireRequestId === requestId);
   };
 
   const getMessagesForConversation = (conversationId: string): ChatMessage[] => {
@@ -1070,22 +932,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
     );
 
-    // Send in-app & push notification to the other participant
-    const targetConv = conversations.find((c) => c.id === conversationId);
-    if (targetConv && targetConv.participantIds) {
-      const otherId = targetConv.participantIds.find((id) => id !== userProfile.userId);
-      if (otherId) {
-        addNotification({
-          recipientId: otherId,
-          titleBn: `নতুন বার্তা: ${userProfile.fullName}`,
-          messageBn: text.trim().slice(0, 50) + (text.trim().length > 50 ? '...' : ''),
-          type: 'general',
-          status: 'pending',
-          isRead: false,
-        });
-      }
-    }
-
     try {
       await addDoc(collection(db, 'messages'), newMsg);
       await updateDoc(doc(db, 'conversations', conversationId), {
@@ -1117,16 +963,12 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cancelRequest,
         submitRating,
         submitComplaint,
-        updateComplaintStatus,
-        calculateFee,
         getConversationByRequestId,
         getMessagesForConversation,
         sendMessage,
         getWorkerById,
         getWorkerStats,
         getWorkerReviews,
-        activeRequestIdForDetails,
-        setActiveRequestIdForDetails,
       }}
     >
       {children}

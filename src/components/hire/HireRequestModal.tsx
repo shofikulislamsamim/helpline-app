@@ -34,13 +34,13 @@ export const HireRequestModal: React.FC<HireRequestModalProps> = ({
 
   const [workType, setWorkType] = useState('');
   const [description, setDescription] = useState('');
-  const [division, setDivision] = useState(userProfile.presentAddress?.division || 'ঢাকা');
-  const [district, setDistrict] = useState(userProfile.presentAddress?.district || 'ঢাকা');
-  const [upazila, setUpazila] = useState(userProfile.presentAddress?.upazila || '');
-  const [areaRoad, setAreaRoad] = useState(userProfile.presentAddress?.areaRoad || '');
+  const [division, setDivision] = useState(userProfile.presentAddress.division || 'ঢাকা');
+  const [district, setDistrict] = useState(userProfile.presentAddress.district || 'ঢাকা');
+  const [upazila, setUpazila] = useState(userProfile.presentAddress.upazila || '');
+  const [areaRoad, setAreaRoad] = useState(userProfile.presentAddress.areaRoad || '');
   const [fullAddress, setFullAddress] = useState(
-    userProfile.presentAddress?.fullAddress || 
-    `${userProfile.presentAddress?.areaRoad || ''}, ${userProfile.presentAddress?.upazila || ''}, ${userProfile.presentAddress?.district || ''}`.trim()
+    userProfile.presentAddress.fullAddress || 
+    `${userProfile.presentAddress.areaRoad || ''}, ${userProfile.presentAddress.upazila || ''}, ${userProfile.presentAddress.district || ''}`.trim()
   );
 
   const tomorrowStr = new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0];
@@ -56,7 +56,7 @@ export const HireRequestModal: React.FC<HireRequestModalProps> = ({
   if (!worker) return null;
 
   const isSelf = userProfile.userId === worker.userId;
-  const isWorkerVerified = worker.verificationStatus === 'verified' || worker.verificationStatus === 'approved';
+  const isWorkerVerified = worker.verificationStatus === 'verified';
   const isWorkerOnline = worker.isOnline;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -165,7 +165,7 @@ export const HireRequestModal: React.FC<HireRequestModalProps> = ({
                 )}
               </div>
               <p className="text-[11px] text-blue-300 truncate">
-                {worker.mainProfession || worker.professions?.[0] || 'কারিগর'}
+                {worker.mainProfession || worker.professions[0] || 'কারিগর'}
               </p>
             </div>
             <div className="text-right shrink-0">

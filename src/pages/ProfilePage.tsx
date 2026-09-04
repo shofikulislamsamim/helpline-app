@@ -20,11 +20,7 @@ import {
   Activity,
   Plus,
   Radio,
-  FileText,
-  Lock,
-  Layers,
-  Search,
-  CheckCircle2
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { StatusToggle } from '../components/common/StatusToggle';
@@ -33,17 +29,8 @@ import { LocationPermissionCard } from '../components/profile/LocationPermission
 import { WorkHistorySection } from '../components/profile/WorkHistorySection';
 import { CustomProfessionModal } from '../components/profile/CustomProfessionModal';
 import { ProfileSetupModal } from '../components/profile/ProfileSetupModal';
-import { PortfolioSection } from '../components/profile/PortfolioSection';
-import { PricingRateCardSection } from '../components/profile/PricingRateCardSection';
-import { ServiceTypesSection } from '../components/profile/ServiceTypesSection';
-import { SearchKeywordsSection } from '../components/profile/SearchKeywordsSection';
-import { PrivacySettingsSection } from '../components/profile/PrivacySettingsSection';
-import { ProfilePhotoUploader } from '../components/profile/ProfilePhotoUploader';
-import { RatingReputationSection } from '../components/profile/RatingReputationSection';
 import { CAPABILITIES_LIST } from '../lib/professionsData';
 import { i18n } from '../lib/i18n';
-import { CapabilityType, UserProfessionItem } from '../types';
-import { buildNormalizedSearchKeywords } from '../lib/searchNormalization';
 
 interface ProfilePageProps {
   onNavigate: (view: string) => void;
@@ -61,92 +48,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
   } = useAuth();
 
   const [isCustomProfModalOpen, setIsCustomProfModalOpen] = useState(false);
-  const [newSkillInput, setNewSkillInput] = useState('');
+  const [verificationSubmitted, setVerificationSubmitted] = useState(
+    userProfile.verificationStatus === 'pending'
+  );
+
+  const handleRequestVerification = async () => {
+    setVerificationSubmitted(true);
+    await updateProfile({ verificationStatus: 'pending' });
+  };
 
   const activeCapabilities = userProfile.capabilities || userProfile.roles || [];
 
-  const handleAddSkillDirectly = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSkillInput.trim()) return;
-    const trimmed = newSkillInput.trim();
-    const currentSkills = userProfile.skills || [];
-    if (!currentSkills.includes(trimmed)) {
-      const nextSkills = [...currentSkills, trimmed];
-      const allKeywords = [
-        ...(userProfile.searchKeywords || []),
-        ...(userProfile.professions || []),
-        ...nextSkills,
-        ...(userProfile.serviceAreas || []),
-        userProfile.presentAddress?.upazila || '',
-        userProfile.presentAddress?.district || '',
-      ];
-      const normalized = buildNormalizedSearchKeywords(allKeywords);
-      await updateProfile({ 
-        skills: nextSkills,
-        searchKeywordsNormalized: normalized 
-      });
-    }
-    setNewSkillInput('');
-  };
-
-  const handleRemoveSkillDirectly = async (skillToRemove: string) => {
-    const currentSkills = userProfile.skills || [];
-    const nextSkills = currentSkills.filter((s) => s !== skillToRemove);
-    const allKeywords = [
-      ...(userProfile.searchKeywords || []),
-      ...(userProfile.professions || []),
-      ...nextSkills,
-      ...(userProfile.serviceAreas || []),
-      userProfile.presentAddress?.upazila || '',
-      userProfile.presentAddress?.district || '',
-    ];
-    const normalized = buildNormalizedSearchKeywords(allKeywords);
-    await updateProfile({ 
-      skills: nextSkills,
-      searchKeywordsNormalized: normalized 
-    });
-  };
-
-  const handleCustomProfessionAdded = async (newProf: UserProfessionItem) => {
-    const existingUserProfs = userProfile.userProfessions || [];
-    const updatedUserProfs = [...existingUserProfs, newProf];
-    const updatedProfessions = Array.from(new Set([...(userProfile.professions || []), newProf.nameBn]));
-    const updatedSkills = Array.from(new Set([...(userProfile.skills || []), ...newProf.skills]));
-    const updatedModes = Array.from(
-      new Set([...(userProfile.serviceCategoryModes || ['physical']), newProf.categoryMode])
-    );
-
-    const allKeywordsForNormalization = [
-      ...(userProfile.searchKeywords || []),
-      ...updatedProfessions,
-      ...updatedSkills,
-      ...(userProfile.serviceAreas || []),
-      userProfile.presentAddress?.upazila || '',
-      userProfile.presentAddress?.district || '',
-    ];
-    const normalizedKeywords = buildNormalizedSearchKeywords(allKeywordsForNormalization);
-
-    await updateProfile({
-      userProfessions: updatedUserProfs,
-      customProfessions: updatedUserProfs.filter((p) => p.isCustom),
-      professions: updatedProfessions,
-      skills: updatedSkills,
-      serviceCategoryModes: updatedModes,
-      searchKeywordsNormalized: normalizedKeywords,
-      mainProfession: userProfile.mainProfession || newProf.nameBn,
-    });
-    setIsCustomProfModalOpen(false);
-  };
-
   return (
-    <div className="space-y-6 pb-24 max-w-4xl mx-auto">
-      {/* 18. Dynamic Profile Completion Banner */}
+    <div className="space-y-6 pb-20 max-w-4xl mx-auto">
+      {/* Dynamic Profile Completion Banner */}
       <ProfileCompletionBanner 
         profile={userProfile} 
         onOpenSetup={openProfileSetup} 
       />
 
-      {/* 1. Main User Profile Header Card (Basic Info) */}
+      {/* Main User Profile Header Card */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
           <div className="flex items-start sm:items-center gap-5">
@@ -167,7 +88,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${
                   userProfile.isOnline ? 'bg-emerald-500' : 'bg-slate-400'
                 }`}
-                title={userProfile.isOnline ? 'অনলাইন (Online)' : 'অফলাইন (Offline)'}
+                title={userProfile.isOnline ? 'Online' : 'Offline'}
               />
             </div>
 
@@ -185,148 +106,124 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 ) : userProfile.verificationStatus === 'under_review' ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
                     <Clock className="w-3.5 h-3.5 text-blue-600" />
-                    <span>🔍 পর্যালোচনা চলছে</span>
+                    <span>🔍 পর্যালোচনাধীন (Under Review)</span>
+                  </span>
+                ) : userProfile.verificationStatus === 'reverification_required' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                    <ShieldAlert className="w-3.5 h-3.5 text-purple-600" />
+                    <span>⚠️ পুনরায় যাচাই প্রয়োজন</span>
+                  </span>
+                ) : userProfile.verificationStatus === 'rejected' ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                    <span>✕ প্রত্যাখ্যাত (Rejected)</span>
+                  </span>
+                ) : userProfile.verificationStatus === 'pending' || verificationSubmitted ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>⏳ ভেরিফিকেশন অপেক্ষমান (Pending)</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                    <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                    <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
                     <span>অযাচাইকৃত (Unverified)</span>
                   </span>
                 )}
 
-                {/* Driver Badge if verified */}
+                {/* Driver Verified Badge */}
                 {(userProfile.driverVerificationStatus === 'approved' || userProfile.isDriverVerified) && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
                     <span>🚗</span>
-                    <span>ড্রাইভার</span>
+                    <span>✓ ড্রাইভার ভেরিফাইড</span>
                   </span>
                 )}
               </div>
 
-              {/* Main Profession Badge & Present District */}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                {userProfile.mainProfession && (
-                  <span className="px-2.5 py-0.5 bg-blue-50 text-blue-800 font-bold rounded-md border border-blue-200 flex items-center gap-1">
-                    <Award className="w-3 h-3 text-blue-600" />
-                    <span>{userProfile.mainProfession}</span>
-                  </span>
-                )}
-                <span className="flex items-center gap-1 font-medium text-slate-500">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  <span>
-                    {userProfile.presentAddress?.upazila ? `${userProfile.presentAddress.upazila}, ` : ''}
-                    {userProfile.presentAddress?.district || 'বাংলাদেশ'}
-                  </span>
-                </span>
-                <span className="flex items-center gap-1 font-semibold text-amber-600">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{(userProfile.rating || 5.0).toFixed(1)}</span>
-                  <span className="text-slate-400 font-normal">({userProfile.reviewCount || 0} রিভিউ)</span>
-                </span>
-              </div>
+              {userProfile.mainProfession && (
+                <p className="text-xs sm:text-sm font-bold text-blue-700">
+                  ⭐ প্রধান পেশা: {userProfile.mainProfession}
+                </p>
+              )}
 
-              {/* Phone & Email (Respecting Privacy Settings) */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" />
-                  <span>
-                    {userProfile.privacySettings?.phoneVisibility === 'hidden'
-                      ? '🔒 নম্বর গোপন রাখা হয়েছে'
-                      : userProfile.phoneNumber}
-                  </span>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-xl line-clamp-2">
+                {userProfile.bio || 'প্রোফাইলে এখনও কোনো বিবরণ যোগ করা হয়নি।'}
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 pt-1">
+                <span className="flex items-center gap-1 font-semibold text-slate-900">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <span>{userProfile.rating}</span>
+                  <span className="text-slate-500 font-normal">({userProfile.reviewCount} রিভিউ)</span>
                 </span>
-                {userProfile.email && (
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{userProfile.email}</span>
-                  </span>
-                )}
+                <span className="flex items-center gap-1">
+                  <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{userProfile.completedJobsCount}টি কাজ সম্পন্ন</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>যোগদান: {userProfile.joinedDate}</span>
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Quick Edit CTA Button */}
+          {/* Quick Edit Profile CTA */}
           <button
             onClick={openProfileSetup}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs shrink-0"
+            className="self-start sm:self-auto px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0"
           >
             <Edit3 className="w-4 h-4" />
-            <span>সম্পূর্ণ প্রোফাইল সম্পাদনা করুন</span>
+            <span>প্রোফাইল সম্পাদন (Edit Profile)</span>
           </button>
         </div>
 
-        {/* Bio */}
-        {userProfile.bio && (
-          <div className="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-700 leading-relaxed">
-            <p className="font-semibold text-slate-900 mb-0.5">পরিচিতি (Bio):</p>
-            <p>{userProfile.bio}</p>
+        {/* Contact details row */}
+        <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="flex items-center gap-2 text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60">
+            <Phone className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>মোবাইল: <strong className="text-slate-900">{userProfile.phoneNumber}</strong></span>
           </div>
-        )}
-
-        {/* Profile Photo Direct Image Upload (📷 Profile Photo) */}
-        <div className="mt-5 pt-5 border-t border-slate-100">
-          <ProfilePhotoUploader
-            currentPhotoUrl={userProfile.avatarUrl}
-            userId={userProfile.userId}
-            userName={userProfile.fullName}
-            onPhotoUploaded={async (newUrl) => {
-              await updateProfile({ avatarUrl: newUrl || '' });
-            }}
-            autoSaveToProfile={async (newUrl) => {
-              await updateProfile({ avatarUrl: newUrl || '' });
-              return true;
-            }}
-          />
+          <div className="flex items-center gap-2 text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60">
+            <Mail className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>ইমেইল: <strong className="text-slate-900">{userProfile.email || 'সংযুক্ত নেই'}</strong></span>
+          </div>
         </div>
       </div>
 
-      {/* 2. Online / Offline Availability Toggle */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
+      {/* Section 1: Online / Offline Availability Toggle */}
+      <section className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
               <span className={`w-3 h-3 rounded-full ${userProfile.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
               <span>১. কাজের প্রাপ্যতা (Online / Offline Availability)</span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              আপনি অনলাইনে থাকলে কাস্টমাররা আপনাকে সরাসরি কল করতে এবং জরুরি কাজে আমন্ত্রণ জানাতে পারবেন।
+              {userProfile.isOnline 
+                ? '🟢 আপনি এখন কাজের জন্য Available। গ্রাহকরা আপনাকে খুঁজে পাবেন।' 
+                : '🔴 আপনি এখন কাজের জন্য Available নন। আপনার প্রোফাইল সার্চে অফলাইন দেখাবে।'}
             </p>
           </div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200/80">
           <StatusToggle />
-
-          <div className="text-xs text-slate-500 space-y-0.5">
-            {userProfile.isOnline ? (
-              <p className="text-emerald-700 font-bold flex items-center gap-1.5">
-                <CheckCircle className="w-4 h-4 text-emerald-600" />
-                <span>আপনি বর্তমানে কাজের জন্য প্রস্তুত (Available)</span>
-              </p>
-            ) : (
-              <p className="text-slate-600 font-medium">
-                বর্তমানে অফলাইনে আছেন। কাজ পাওয়ার জন্য সুইচটি চালু করুন।
-              </p>
-            )}
-            {userProfile.lastOnlineAt && (
-              <p className="text-[11px] text-slate-400">
-                সর্বশেষ সক্রিয়: {new Date(userProfile.lastOnlineAt).toLocaleTimeString('bn-BD')}
-              </p>
-            )}
-          </div>
         </div>
-      </div>
 
-      {/* 3. Roles & Capabilities (১০টি সক্ষমতা) */}
+        <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+          <span>সর্বশেষ স্ট্যাটাস পরিবর্তন: {userProfile.availabilityUpdatedAt ? new Date(userProfile.availabilityUpdatedAt).toLocaleTimeString('bn-BD') : 'সম্প্রতি'}</span>
+          <span>•</span>
+          <span>সর্বশেষ সক্রিয়: {userProfile.lastActiveAt ? new Date(userProfile.lastActiveAt).toLocaleDateString('bn-BD') : 'আজ'}</span>
+        </div>
+      </section>
+
+      {/* Section 2: Roles & Capabilities */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-blue-600" />
-              <span>২. সক্রিয় সক্ষমতা ও ভূমিকা (Capabilities)</span>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900">
+              ২. সক্রিয় রোল ও সক্ষমতা (One Account, Multiple Roles)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              HelpLine-এ আপনি একই প্রোফাইলে একাধিক রোলে সক্রিয় থাকতে পারেন।
+              একই HelpLine অ্যাকাউন্ট থেকে আপনি একই সাথে সার্ভিস দিতে এবং সেবা নিতে পারেন।
             </p>
           </div>
           <button
@@ -337,208 +234,124 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {CAPABILITIES_LIST.map((cap) => {
-            const isSelected = activeCapabilities.includes(cap.id);
+            const isAssigned = activeCapabilities.includes(cap.id);
             return (
-              <div
+              <button
                 key={cap.id}
                 onClick={() => toggleRole(cap.id)}
-                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
-                  isSelected
-                    ? 'bg-blue-50/80 border-blue-300 text-blue-950 shadow-2xs'
-                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                className={`text-left p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                  isAssigned
+                    ? 'bg-blue-50/70 border-blue-300 text-slate-900 shadow-2xs'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                <span className="text-2xl shrink-0 mt-0.5">{cap.icon}</span>
-                <div className="space-y-0.5 flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-xs text-slate-900">{cap.titleBn}</h3>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => {}}
-                      className="w-4 h-4 text-blue-600 rounded cursor-pointer"
-                    />
+                <div className="flex items-center justify-between w-full mb-1">
+                  <span className="text-xl">{cap.icon}</span>
+                  <div
+                    className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border ${
+                      isAssigned
+                        ? 'bg-blue-600 border-blue-700 text-white'
+                        : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {isAssigned && <CheckCircle className="w-3 h-3" />}
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">{cap.subtitleBn}</p>
                 </div>
-              </div>
+
+                <div className="font-bold text-xs text-slate-900">{cap.titleBn}</div>
+                <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{cap.subtitleBn}</div>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* 4. Present Address (বর্তমান ঠিকানা) */}
+      {/* Section 3: Present Address & GPS Location */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-600" />
-              <span>৩. বর্তমান ঠিকানা (Present Address)</span>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900">
+              ৩. বর্তমান ঠিকানা ও অবস্থান (Bangladesh Hierarchical Address)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              বাংলাদেশি প্রশাসনিক কাঠামো অনুসারে আপনার নির্দিষ্ট বর্তমান অবস্থান
+              বিভাগ → জেলা → উপজেলা/থানা → ইউনিয়ন/ওয়ার্ড → এলাকা
             </p>
           </div>
           <button
             onClick={openProfileSetup}
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
           >
-            সম্পাদনা
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>ঠিকানা আপডেট করুন</span>
           </button>
         </div>
 
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-          {/* Breadcrumb Hierarchy */}
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-700">
-              বিভাগ: {userProfile.presentAddress?.division || 'ঢাকা'}
+        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/70 text-xs sm:text-sm space-y-2">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+            <span className="font-bold text-slate-900">
+              {userProfile.presentAddress.division} বিভাগ → {userProfile.presentAddress.district} জেলা → {userProfile.presentAddress.upazila}
             </span>
-            <span className="text-slate-400">›</span>
-            <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-700">
-              জেলা: {userProfile.presentAddress?.district || 'ঢাকা'}
-            </span>
-            <span className="text-slate-400">›</span>
-            <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-700">
-              উপজেলা/থানা: {userProfile.presentAddress?.upazila || 'মিরপুর'}
-            </span>
-            {userProfile.presentAddress?.unionWard && (
-              <>
-                <span className="text-slate-400">›</span>
-                <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-700">
-                  {userProfile.presentAddress.unionWard}
-                </span>
-              </>
-            )}
           </div>
-
-          {/* Detailed Street Address */}
-          {userProfile.presentAddress?.fullAddress ? (
-            <div className="text-xs text-slate-600 pt-1">
-              <strong className="text-slate-800">পূর্ণ ঠিকানা:</strong> {userProfile.presentAddress.fullAddress}
-            </div>
-          ) : userProfile.presentAddress?.areaRoad ? (
-            <div className="text-xs text-slate-600 pt-1">
-              <strong className="text-slate-800">এলাকা/রোড:</strong> {userProfile.presentAddress.areaRoad}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* 5. Live GPS Location (বর্তমান লাইভ লোকেশন) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-        <div>
-          <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-            <Radio className="w-4 h-4 text-blue-600 animate-pulse" />
-            <span>৪. লাইভ জিপিএস লোকেশন ও পারমিশন (Live GPS Location)</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            কাছাকাছি কাজ পেতে ও সঠিক দূরত্ব গণনার জন্য আপনার ডিভাইসের লাইভ জিপিএস লোকেশন সচল রাখুন।
+          <p className="text-slate-600 pl-6 text-xs leading-relaxed">
+            {userProfile.presentAddress.unionWard && `${userProfile.presentAddress.unionWard} • `}
+            {userProfile.presentAddress.areaRoad && `${userProfile.presentAddress.areaRoad} • `}
+            {userProfile.presentAddress.fullAddress || `${userProfile.presentAddress.upazila}, ${userProfile.presentAddress.district}`}
           </p>
         </div>
 
+        {/* GPS Live Location status & permission button */}
         <LocationPermissionCard />
       </div>
 
-      {/* 6. Professions & Skills (পেশা ও দক্ষতা) */}
+      {/* Section 4: Professions & Skills */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-blue-600" />
-              <span>৫. পেশাসমূহ ও কাজের দক্ষতা (Professions & Skills)</span>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900">
+              ৪. পেশা ও দক্ষতাসমূহ (Professions & Skills)
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">আপনার দক্ষতা ও সংশ্লিষ্ট কাজের তালিকা</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              যেসব বিষয়ে আপনি পেশাদার সেবা প্রদান করতে পারেন
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsCustomProfModalOpen(true)}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition cursor-pointer"
+              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>নতুন পেশা তৈরি</span>
+              + নতুন কাজের ধরন
             </button>
             <button
               onClick={openProfileSetup}
-              className="text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-xl flex items-center gap-1 transition cursor-pointer"
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
             >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>সম্পাদনা</span>
+              সম্পাদনা
             </button>
           </div>
         </div>
 
-        {/* Service Category Modes Badges */}
-        {userProfile.serviceCategoryModes && userProfile.serviceCategoryModes.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pt-1 pb-2 border-b border-slate-100">
-            <span className="text-[11px] font-bold text-slate-500">সার্ভিসের ধরন:</span>
-            {userProfile.serviceCategoryModes.includes('physical') && (
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200 flex items-center gap-1">
-                <span>📍</span>
-                <span>লোকাল / ফিজিক্যাল সার্ভিস</span>
-              </span>
-            )}
-            {userProfile.serviceCategoryModes.includes('digital') && (
-              <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-800 text-[11px] font-bold border border-indigo-200 flex items-center gap-1">
-                <span>💻</span>
-                <span>ফ্রিল্যান্স / ডিজিটাল সার্ভিস</span>
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Professions List */}
+        {/* Professions list */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700">নির্বাচিত পেশা:</label>
-          {userProfile.userProfessions && userProfile.userProfessions.length > 0 ? (
+          <label className="text-xs font-semibold text-slate-700">নির্বাচিত পেশাসমূহ:</label>
+          {userProfile.professions && userProfile.professions.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {userProfile.userProfessions.map((prof, idx) => {
-                const isMain = prof.nameBn === userProfile.mainProfession || prof.isMain;
-                return (
-                  <div
-                    key={prof.id || idx}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
-                      isMain
-                        ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'bg-blue-50 text-blue-900 border border-blue-200'
-                    }`}
-                  >
-                    <span>{prof.categoryMode === 'digital' ? '💻' : '📍'}</span>
-                    <span>{prof.nameBn}</span>
-                    {prof.nameEn && <span className="text-[10px] opacity-75">({prof.nameEn})</span>}
-                    {prof.isCustom && (
-                      <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-bold ${
-                        isMain ? 'bg-blue-700 text-blue-100' : 'bg-blue-200 text-blue-800'
-                      }`}>
-                        কাস্টম
-                      </span>
-                    )}
-                    {isMain && (
-                      <span className="text-[10px] bg-white text-blue-700 px-1.5 py-0.2 rounded-md font-black">
-                        প্রধান
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : userProfile.professions && userProfile.professions.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {userProfile.professions.map((prof, idx) => {
-                const isMain = prof === userProfile.mainProfession;
+              {userProfile.professions.map((p, idx) => {
+                const isMain = userProfile.mainProfession === p;
                 return (
                   <span
                     key={idx}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 shadow-2xs ${
                       isMain
-                        ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'bg-blue-50 text-blue-900 border border-blue-200'
+                        ? 'bg-amber-50 text-amber-900 border-amber-300 ring-1 ring-amber-300'
+                        : 'bg-blue-50 text-blue-800 border-blue-200'
                     }`}
                   >
-                    <span>{prof}</span>
+                    <span>👔 {p}</span>
                     {isMain && (
-                      <span className="text-[10px] bg-white text-blue-700 px-1.5 py-0.2 rounded-md font-black">
+                      <span className="text-[10px] bg-amber-400 text-slate-900 px-1 rounded font-extrabold">
                         প্রধান
                       </span>
                     )}
@@ -547,104 +360,36 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
               })}
             </div>
           ) : (
-            <p className="text-xs text-slate-500 italic">কোনো পেশা এখনও যুক্ত করা হয়নি।</p>
+            <p className="text-xs text-slate-500 italic">এখনও কোনো পেশা যুক্ত করা হয়নি।</p>
           )}
         </div>
 
-        {/* Skills Tags */}
+        {/* Skills list */}
         <div className="space-y-2 pt-2 border-t border-slate-100">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-slate-700">কাজের দক্ষতা ও স্পেশালাইজেশন (Skills):</label>
-            <button
-              onClick={openProfileSetup}
-              className="text-[11px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
-            >
-              দক্ষতা সম্পাদনা
-            </button>
-          </div>
-
+          <label className="text-xs font-semibold text-slate-700">দক্ষতা ও বিশেষত্ব (Skills Tags):</label>
           {userProfile.skills && userProfile.skills.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {userProfile.skills.map((skill, idx) => (
+            <div className="flex flex-wrap gap-2">
+              {userProfile.skills.map((s, idx) => (
                 <span
                   key={idx}
-                  className="px-2.5 py-1 bg-slate-100 text-slate-800 rounded-full text-xs font-medium border border-slate-200 flex items-center gap-1"
+                  className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-medium"
                 >
-                  <span>{skill}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveSkillDirectly(skill)}
-                    className="text-slate-400 hover:text-rose-600 ml-0.5 cursor-pointer font-bold"
-                  >
-                    ×
-                  </button>
+                  ⚡ {s}
                 </span>
               ))}
             </div>
           ) : (
             <p className="text-xs text-slate-500 italic">কোনো দক্ষতার ট্যাগ যোগ করা হয়নি।</p>
           )}
-
-          {/* Quick Skill Entry Form */}
-          <form onSubmit={handleAddSkillDirectly} className="flex gap-2 pt-1">
-            <input
-              type="text"
-              value={newSkillInput}
-              onChange={(e) => setNewSkillInput(e.target.value)}
-              placeholder="নতুন কাজের দক্ষতা লিখুন (যেমন: ইনভার্টার এসি গ্যাস চার্জ)"
-              className="flex-1 text-xs p-2 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
-            >
-              + যোগ করুন
-            </button>
-          </form>
         </div>
       </div>
 
-      {/* 7. Service Delivery Types (সেবার ধরন ও কাজের পরিধি) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-        <ServiceTypesSection
-          selectedTypes={userProfile.serviceTypes}
-          onChange={async (newTypes) => {
-            await updateProfile({ serviceTypes: newTypes });
-          }}
-        />
-      </div>
-
-      {/* 8. Search Keywords & Local Tags (সার্চ কিওয়ার্ডস) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-        <SearchKeywordsSection
-          keywords={userProfile.searchKeywords}
-          professions={userProfile.userProfessions || userProfile.professions}
-          skills={userProfile.skills}
-          onChange={async (newKeywords) => {
-            const allKeywords = [
-              ...newKeywords,
-              ...(userProfile.professions || []),
-              ...(userProfile.skills || []),
-              ...(userProfile.serviceAreas || []),
-              userProfile.presentAddress?.upazila || '',
-              userProfile.presentAddress?.district || '',
-            ];
-            const normalized = buildNormalizedSearchKeywords(allKeywords);
-            await updateProfile({
-              searchKeywords: newKeywords,
-              searchKeywordsNormalized: normalized,
-            });
-          }}
-        />
-      </div>
-
-      {/* 9. Profession Experience (পেশাগত অভিজ্ঞতা) */}
+      {/* Section 5: Profession Experience */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              <Award className="w-4 h-4 text-blue-600" />
-              <span>৭. পেশাগত অভিজ্ঞতার বিবরণ (Experience)</span>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900">
+              ৫. পেশাগত অভিজ্ঞতার বিবরণ (Experience)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">প্রতিটি পেশায় মোট কাজের বছর ও পারদর্শিতা</p>
           </div>
@@ -659,7 +404,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         {userProfile.experiences && userProfile.experiences.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {userProfile.experiences.map((exp, i) => (
-              <div key={i} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+              <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs text-slate-900">{exp.profession}</span>
                   <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-[11px] font-extrabold rounded-md">
@@ -679,7 +424,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         )}
       </div>
 
-      {/* 10. Work History (কাজের ইতিহাস) */}
+      {/* Section 6: Work History */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
         <WorkHistorySection
           histories={userProfile.workHistories || []}
@@ -689,13 +434,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         />
       </div>
 
-      {/* 11. Service Area (সেবা প্রদানের এলাকা) */}
+      {/* Section 7: Service Area */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-              <Navigation className="w-4 h-4 text-blue-600" />
-              <span>৮. সেবা প্রদানের এলাকা (Service Area)</span>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900">
+              ৭. সেবা প্রদানের এলাকা (Service Area)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">"আমি যেসব এলাকায় গিয়ে কাজ করতে পারি"</p>
           </div>
@@ -724,34 +468,52 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         )}
       </div>
 
-      {/* 12. Portfolio & Sample Works (পোর্টফোলিও ও কাজের নমুনা) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-        <PortfolioSection
-          portfolio={userProfile.portfolio || []}
-          userProfessions={userProfile.professions || []}
-          onChange={async (newPortfolio) => {
-            await updateProfile({ portfolio: newPortfolio });
-          }}
-        />
+      {/* Section 8: Placeholders for Future Steps */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Portfolio Placeholder */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+              <ImageIcon className="w-4 h-4" />
+            </div>
+            <h3 className="font-bold text-xs sm:text-sm text-slate-900">
+              পোর্টফোলিও ও কাজের ছবি (Portfolio)
+            </h3>
+          </div>
+          <p className="text-xs text-slate-500">
+            পূর্বের সম্পন্ন কাজের ছবি ও ভিডিও আপলোড সুবিধা পরবর্তী ধাপে যুক্ত করা হবে।
+          </p>
+          <div className="p-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400 font-medium">
+            📸 পোর্টফোলিও আপলোড — শীঘ্রই আসছে (Step 3)
+          </div>
+        </div>
+
+        {/* Activity & Reviews Placeholder */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+              <Activity className="w-4 h-4" />
+            </div>
+            <h3 className="font-bold text-xs sm:text-sm text-slate-900">
+              সাম্প্রতিক কাজ ও রিভিউ হিস্টোরি
+            </h3>
+          </div>
+          <p className="text-xs text-slate-500">
+            গ্রাহকদের রেটিং, রিভিউ ও সম্পন্ন কাজের তালিকা এখানে দৃশ্যমান হবে।
+          </p>
+          <div className="p-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400 font-medium">
+            ⭐ মার্কেটপ্লেস রিভিউ ফিড — সক্রিয়
+          </div>
+        </div>
       </div>
 
-      {/* 13. Pricing & Rate Card (সেবার মূল্য ও রেট চার্ট) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-        <PricingRateCardSection
-          pricing={userProfile.pricing}
-          onChange={async (newPricing) => {
-            await updateProfile({ pricing: newPricing });
-          }}
-        />
-      </div>
-
-      {/* 14. Identity & Driver Verification Card */}
+      {/* Section 9: Identity & Driver Verification Card */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-blue-600" />
-              <span>১৪. পরিচয়পত্র ও চালক ভেরিফিকেশন (Identity & Driver Verification)</span>
+              <span>৯. পরিচয়পত্র ও চালক ভেরিফিকেশন (Identity & Driver Verification)</span>
             </h2>
             <p className="text-xs text-slate-500">
               জাতীয় পরিচয়পত্র (NID), ড্রাইভিং লাইসেন্স বা জন্ম সনদ দিয়ে প্রোফাইল যাচাই করুন।
@@ -771,8 +533,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
               </span>
             ) : userProfile.verificationStatus === 'under_review' ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                <Clock className="w-4 h-4 text-blue-600" />
+                <ShieldCheck className="w-4 h-4 text-blue-600" />
                 <span>🔍 পর্যালোচনা চলছে</span>
+              </span>
+            ) : userProfile.verificationStatus === 'reverification_required' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                <ShieldAlert className="w-4 h-4 text-purple-600" />
+                <span>⚠️ পুনরায় যাচাই প্রয়োজন</span>
+              </span>
+            ) : userProfile.verificationStatus === 'rejected' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                <ShieldAlert className="w-4 h-4 text-rose-600" />
+                <span>✕ প্রত্যাখ্যাত (Rejected)</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -822,27 +594,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* 15. Rating, Reputation & Performance (রেটিং ও পারফরম্যান্স) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-        <RatingReputationSection profile={userProfile} />
-      </div>
-
-      {/* 16. Privacy Settings (ব্যক্তিগত তথ্যের গোপনীয়তা নিয়ন্ত্রণ) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-        <PrivacySettingsSection
-          settings={userProfile.privacySettings}
-          onChange={async (newSettings) => {
-            await updateProfile({ privacySettings: newSettings });
-          }}
-        />
-      </div>
-
-      {/* 17. Subscription & Payment Overview */}
+      {/* Section 10: Subscription Overview */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-blue-600" />
-            <span>১৭. সাবস্ক্রিপশন ও প্ল্যাটফর্ম পেমেন্ট (Subscription)</span>
+            <span>১০. সাবস্ক্রিপশন ও পেমেন্ট (Subscription)</span>
           </h2>
           <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">
             {i18n.common.free}
@@ -863,7 +620,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
       <CustomProfessionModal
         isOpen={isCustomProfModalOpen}
         onClose={() => setIsCustomProfModalOpen(false)}
-        onAdded={handleCustomProfessionAdded}
       />
     </div>
   );

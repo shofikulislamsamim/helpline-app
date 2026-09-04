@@ -18,30 +18,6 @@ export type UserRoleType =
 
 export type CapabilityType = UserRoleType;
 
-export type ServiceCategoryMode = 'physical' | 'digital';
-
-export interface UserProfessionItem {
-  id: string;
-  nameBn: string;
-  nameEn?: string;
-  categoryMode: ServiceCategoryMode; // 'physical' (📍 Physical/Local) | 'digital' (💻 Freelance/Digital)
-  isCustom?: boolean;
-  status?: 'approved' | 'pending';
-  skills: string[];
-  yearsOfExperience?: number;
-  isMain?: boolean;
-  description?: string;
-  createdAt?: string;
-}
-
-export interface CustomSkillItem {
-  name: string;
-  professionId?: string;
-  professionName?: string;
-  isCustom?: boolean;
-  createdAt?: string;
-}
-
 export interface ProfessionExperience {
   profession: string;
   years: number;
@@ -192,9 +168,8 @@ export interface AppNotification {
   recipientId: string;
   titleBn: string;
   messageBn: string;
-  type: 'verification' | 'system' | 'order' | 'general' | 'chat' | 'hire_request' | 'quote' | 'job_status' | 'commission';
+  type: 'verification' | 'system' | 'order' | 'general';
   verificationRequestId?: string;
-  hireRequestId?: string;
   status?: VerificationStatus;
   isRead: boolean;
   createdAt: string;
@@ -218,38 +193,6 @@ export interface LiveLocation {
   sharePermissionGranted: boolean;
 }
 
-export type ServiceDeliveryType = 
-  | 'on_demand'
-  | 'daily'
-  | 'contractual'
-  | 'full_time'
-  | 'part_time'
-  | 'remote';
-
-export interface PortfolioItem {
-  id: string;
-  title: string;
-  description?: string;
-  imageUrl: string;
-  completedAt?: string;
-  profession?: string;
-}
-
-export interface PricingRateCard {
-  hourlyRate?: number;
-  dailyRate?: number;
-  visitFee?: number;
-  isNegotiable: boolean;
-  rateDescription?: string;
-}
-
-export interface PrivacySettings {
-  phoneVisibility: 'public' | 'hirers_only' | 'hidden';
-  addressVisibility: 'full' | 'area_only' | 'city_only';
-  showLiveLocation: boolean;
-  showOnlineStatus: boolean;
-}
-
 export interface UserProfile {
   userId: string;
   fullName: string;
@@ -269,18 +212,9 @@ export interface UserProfile {
   professions: string[];
   mainProfession?: string;
   skills: string[];
-  serviceCategoryModes?: ServiceCategoryMode[];
-  userProfessions?: UserProfessionItem[];
-  customProfessions?: UserProfessionItem[];
-  searchKeywords?: string[];
-  searchKeywordsNormalized?: string[];
-  serviceTypes?: ServiceDeliveryType[];
   experiences?: ProfessionExperience[];
   workHistories?: WorkHistory[];
   serviceAreas?: string[];
-  portfolio?: PortfolioItem[];
-  pricing?: PricingRateCard;
-  privacySettings?: PrivacySettings;
   presentAddress: PresentAddress;
   currentLocation?: LiveLocation;
   rating: number;
@@ -430,9 +364,6 @@ export interface HireRequest {
   ratingValue?: number;
   ratingComment?: string;
   complaintId?: string;
-
-  // Automated Service Fee Breakdown (Step 4)
-  serviceFeeBreakdown?: ServiceFeeBreakdown;
 }
 
 export interface ServiceReview {
@@ -492,33 +423,6 @@ export interface UserComplaint {
   resolvedAt?: string;
 }
 
-export interface ServiceFeeBreakdown {
-  feeEnabled: boolean;
-  agreedPrice: number;
-  commissionPercentage: number;
-  fixedFee: number;
-  calculatedFee: number;
-  workerReceivable: number;
-  customerPayable: number;
-  calculatedAt: string;
-}
-
-export interface DigitalJobRecord {
-  recordId: string;
-  hireRequestId: string;
-  customerName: string;
-  customerPhone: string;
-  workerName: string;
-  workerPhone: string;
-  workerProfession: string;
-  workType: string;
-  workLocation: string;
-  status: HireRequestStatus;
-  agreedPrice: number;
-  serviceFeeBreakdown?: ServiceFeeBreakdown;
-  issuedAt: string;
-}
-
 export interface HireAdminSettings {
   minServiceBudget: number;
   maxServiceBudget: number;
@@ -526,14 +430,5 @@ export interface HireAdminSettings {
   requireVerificationForWork: boolean;
   requestExpirationHours: number;
   cancellationWindowHours: number;
-
-  // Automated Service Fee / Commission Settings (Step 4)
-  serviceFeeEnabled: boolean;
-  commissionPercentage: number;  // e.g. 5 (%)
-  fixedServiceFee: number;        // e.g. 10 (৳)
-  minServiceFee: number;          // e.g. 10 (৳)
-  maxServiceFee: number;          // e.g. 500 (৳)
-  feeEffectiveDate?: string;
 }
-
 

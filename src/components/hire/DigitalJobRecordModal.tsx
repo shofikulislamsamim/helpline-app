@@ -10,15 +10,9 @@ import {
   MapPin, 
   User, 
   FileCheck2, 
-  Briefcase,
-  Coins,
-  Receipt,
-  Info,
-  BadgeAlert
+  Briefcase 
 } from 'lucide-react';
 import { HireRequest } from '../../types';
-import { calculateServiceFee } from '../../lib/commissionData';
-import { useHire } from '../../context/HireContext';
 
 interface DigitalJobRecordModalProps {
   request: HireRequest | null;
@@ -29,12 +23,7 @@ export const DigitalJobRecordModal: React.FC<DigitalJobRecordModalProps> = ({
   request,
   onClose,
 }) => {
-  const { commissionSettings } = useHire();
-
   if (!request) return null;
-
-  const basePrice = request.agreedPrice || request.quote?.estimatedPrice || request.budget || 0;
-  const breakdown = request.serviceFeeBreakdown || (basePrice > 0 ? calculateServiceFee(basePrice, commissionSettings) : null);
 
   const handlePrint = () => {
     window.print();
@@ -169,75 +158,13 @@ export const DigitalJobRecordModal: React.FC<DigitalJobRecordModalProps> = ({
                 </div>
               )}
               <div className="flex justify-between items-center pt-1 text-sm font-bold">
-                <span className="text-slate-800">চুক্তিভিত্তিক কাজের মূল্য (Agreed Job Price):</span>
+                <span className="text-slate-800">চূড়ান্ত পারিশ্রমিক (Agreed Price):</span>
                 <span className="text-lg font-black text-blue-700 font-mono">
-                  ৳{basePrice > 0 ? basePrice : '—'}
+                  ৳{request.agreedPrice || request.quote?.estimatedPrice || request.budget || '—'}
                 </span>
               </div>
             </div>
           </div>
-
-          {/* Financial Breakdown & Service Fee (Preparatory) */}
-          {breakdown && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Coins className="w-3.5 h-3.5 text-blue-600" />
-                  <span>সার্ভিস ফি ও কমিশন হিসাব (Financial Breakdown)</span>
-                </h4>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                  {breakdown.isEnabled ? 'ফি সক্রিয়' : 'ফি মওকুফ (০%)'}
-                </span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span>গ্রাহকের সম্মত কাজের মূল্য (Agreed Price):</span>
-                    <span className="font-bold text-slate-900 font-mono">৳{breakdown.agreedPrice}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-slate-600 pl-3 border-l-2 border-slate-200">
-                    <span>শতকরা কমিশন ({breakdown.commissionPercentage}%):</span>
-                    <span className="font-medium text-slate-800 font-mono">৳{breakdown.percentageFee}</span>
-                  </div>
-
-                  {breakdown.fixedFee > 0 && (
-                    <div className="flex justify-between items-center text-slate-600 pl-3 border-l-2 border-slate-200">
-                      <span>ফিক্সড সার্ভিস চার্জ:</span>
-                      <span className="font-medium text-slate-800 font-mono">৳{breakdown.fixedFee}</span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between items-center text-blue-700 font-semibold pt-1 border-t border-slate-200/60">
-                    <span>মোট প্ল্যাটফর্ম সার্ভিস ফি:</span>
-                    <span className="font-bold font-mono">৳{breakdown.totalServiceFee}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-emerald-700 font-semibold pt-1 border-t border-slate-200/60">
-                    <span>কারিগর প্রাপ্য নীট অর্থ (Worker Net Receivable):</span>
-                    <span className="font-bold text-emerald-800 font-mono text-sm">৳{breakdown.workerReceivableAmount}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-slate-900 font-black pt-2 border-t-2 border-slate-300 text-sm">
-                    <span>গ্রাহকের মোট প্রদেয় (Total Customer Payable):</span>
-                    <span className="font-black text-blue-800 font-mono text-base">৳{breakdown.customerTotalPayable}</span>
-                  </div>
-                </div>
-
-                {/* Preparatory Notice */}
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-[11px] text-amber-800">
-                  <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold block">প্রস্তুতিমূলক হিসাব বিজ্ঞপ্তি (Preparation Phase):</span>
-                    <p className="mt-0.5 text-amber-700 leading-normal">
-                      {breakdown.preparatoryNotice || 'এটি একটি প্রস্তুতিমূলক ফি হিসাব (Preparatory Calculation)। বর্তমানে কোনো পেমেন্ট গেটওয়ে বা সরাসরি অর্থ কর্তন কার্যকর করা হয়নি। গ্রাহক সরাসরি কারিগরকে কাজ শেষে চুক্তি অনুযায়ী অর্থ পরিশোধ করবেন।'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Lifecycle Timeline */}
           <div className="space-y-3">

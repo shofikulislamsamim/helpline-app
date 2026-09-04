@@ -55,7 +55,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onNavigate }) => {
 
   const getOtherParticipant = (conv: Conversation) => {
     const otherId = conv.participantIds.find((id) => id !== userProfile.userId) || conv.participantIds[1];
-    return conv.participants?.[otherId] || {
+    return conv.participants[otherId] || {
       name: 'ব্যবহারকারী',
       phone: '০১৭০০-০০০০০০',
       role: 'worker',

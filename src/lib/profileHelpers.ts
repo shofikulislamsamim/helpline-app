@@ -16,124 +16,88 @@ export function calculateProfileCompletion(profile: UserProfile): ProfileComplet
   let score = 0;
   const missingItems: MissingProfileItem[] = [];
 
-  // 1. Full Name (8%)
+  // 1. Full Name (10%)
   if (profile.fullName && profile.fullName.trim().length > 2) {
-    score += 8;
+    score += 10;
   } else {
-    missingItems.push({ id: 'name', labelBn: 'আপনার পূর্ণ নাম লিখুন', weight: 8 });
+    missingItems.push({ id: 'name', labelBn: 'আপনার পূর্ণ নাম যুক্ত করুন', weight: 10 });
   }
 
-  // 2. Profile Photo (8%)
+  // 2. Profile Photo (10%)
   if (profile.avatarUrl && profile.avatarUrl.trim().length > 0) {
-    score += 8;
+    score += 10;
   } else {
-    missingItems.push({ id: 'photo', labelBn: 'একটি স্পষ্ট প্রোফাইল ছবি যুক্ত করুন', weight: 8 });
+    missingItems.push({ id: 'photo', labelBn: 'প্রোফাইল ছবি আপলোড করুন', weight: 10 });
   }
 
-  // 3. Mobile Number (8%)
+  // 3. Mobile Number (10%)
   if (profile.phoneNumber && profile.phoneNumber.trim().length >= 10) {
-    score += 8;
+    score += 10;
   } else {
-    missingItems.push({ id: 'phone', labelBn: 'সচল মোবাইল নম্বর প্রদান করুন', weight: 8 });
+    missingItems.push({ id: 'phone', labelBn: 'সচল মোবাইল নম্বর দিন', weight: 10 });
   }
 
-  // 4. Email (4%)
+  // 4. Email (5%)
   if (profile.email && profile.email.includes('@')) {
-    score += 4;
+    score += 5;
   } else {
-    missingItems.push({ id: 'email', labelBn: 'যোগাযোগের ইমেইল অ্যাড্রেস যুক্ত করুন', weight: 4 });
+    missingItems.push({ id: 'email', labelBn: 'যোগাযোগের ইমেইল যুক্ত করুন', weight: 5 });
   }
 
-  // 5. Bio / About (6%)
-  if (profile.bio && profile.bio.trim().length > 10) {
-    score += 6;
-  } else {
-    missingItems.push({ id: 'bio', labelBn: 'নিজের বা আপনার সেবার সংক্ষিপ্ত বিবরণ (Bio) লিখুন', weight: 6 });
-  }
-
-  // 6. Present Address (10%)
+  // 5. Present Address (15%)
   const hasAddr =
     profile.presentAddress?.division &&
     profile.presentAddress?.district &&
     profile.presentAddress?.upazila;
   if (hasAddr) {
+    score += 15;
+  } else {
+    missingItems.push({ id: 'address', labelBn: 'বর্তমান ঠিকানা (বিভাগ, জেলা, উপজেলা) পূরণ করুন', weight: 15 });
+  }
+
+  // 6. Bio / About (10%)
+  if (profile.bio && profile.bio.trim().length > 10) {
     score += 10;
   } else {
-    missingItems.push({ id: 'address', labelBn: 'বর্তমান ঠিকানা (বিভাগ, জেলা, উপজেলা) সম্পূর্ণ করুন', weight: 10 });
+    missingItems.push({ id: 'bio', labelBn: 'নিজের বা কাজের সংক্ষিপ্ত বিবরণ (Bio) লিখুন', weight: 10 });
   }
 
-  // 7. GPS Location (5%)
-  if (profile.currentLocation?.latitude && profile.currentLocation?.longitude) {
-    score += 5;
-  } else {
-    missingItems.push({ id: 'location', labelBn: 'লাইভ জিপিএস লোকেশন পারমিশন চালু করুন', weight: 5 });
-  }
-
-  // 8. Roles & Capabilities (8%)
+  // 7. Roles & Capabilities (10%)
   const caps = profile.capabilities || profile.roles || [];
   if (caps.length > 0) {
-    score += 8;
+    score += 10;
   } else {
-    missingItems.push({ id: 'roles', labelBn: 'কী কী কাজ করতে চান (Capabilities) নির্বাচন করুন', weight: 8 });
+    missingItems.push({ id: 'roles', labelBn: 'কী কী কাজ করতে চান (Capabilities) সিলেক্ট করুন', weight: 10 });
   }
 
-  // 9. Professions & Main Profession (8%)
-  if (profile.professions && profile.professions.length > 0) {
-    score += 8;
+  // 8. Professions & Skills (10%)
+  const isWorker = caps.includes('worker');
+  if (isWorker) {
+    if (profile.professions?.length > 0 && profile.skills?.length > 0) {
+      score += 10;
+    } else {
+      missingItems.push({ id: 'skills', labelBn: 'পেশা এবং সংশ্লিষ্ট কাজের দক্ষতা যুক্ত করুন', weight: 10 });
+    }
   } else {
-    missingItems.push({ id: 'professions', labelBn: 'কমপক্ষে একটি পেশা এবং প্রধান পেশা নির্বাচন করুন', weight: 8 });
+    // Non-workers automatically receive full marks if they have any basic selection
+    score += 10;
   }
 
-  // 10. Skills (6%)
-  if (profile.skills && profile.skills.length > 0) {
-    score += 6;
-  } else {
-    missingItems.push({ id: 'skills', labelBn: 'আপনার কাজের পারদর্শিতা ও দক্ষতার ট্যাগ যুক্ত করুন', weight: 6 });
-  }
-
-  // 11. Service Types (5%)
-  if (profile.serviceTypes && profile.serviceTypes.length > 0) {
-    score += 5;
-  } else {
-    missingItems.push({ id: 'serviceTypes', labelBn: 'সার্ভিসের ধরন (জরুরি/দৈনিক/চুক্তিভিত্তিক) নির্বাচন করুন', weight: 5 });
-  }
-
-  // 12. Search Keywords (4%)
-  if (profile.searchKeywords && profile.searchKeywords.length > 0) {
-    score += 4;
-  } else {
-    missingItems.push({ id: 'keywords', labelBn: 'সার্চ কিওয়ার্ডস ও লোকাল ট্যাগ যুক্ত করুন', weight: 4 });
-  }
-
-  // 13. Experience / Work History (6%)
+  // 9. Experience / Work History (10%)
   const hasExp =
     (profile.experiences && profile.experiences.length > 0) ||
     (profile.workHistories && profile.workHistories.length > 0);
   if (hasExp) {
-    score += 6;
+    score += 10;
   } else {
-    missingItems.push({ id: 'experience', labelBn: 'কাজের অভিজ্ঞতা বা পূর্ববর্তী চাকরির রেকর্ড যুক্ত করুন', weight: 6 });
+    missingItems.push({ id: 'experience', labelBn: 'কাজের অভিজ্ঞতা বা পূর্ববর্তী কাজের ইতিহাস দিন', weight: 10 });
   }
 
-  // 14. Service Area (6%)
+  // 10. Service Area (10%)
   if (profile.serviceAreas && profile.serviceAreas.length > 0) {
-    score += 6;
+    score += 10;
   } else {
-    missingItems.push({ id: 'serviceArea', labelBn: 'সেবা প্রদানের এলাকা (Service Area) নির্বাচন করুন', weight: 6 });
-  }
-
-  // 15. Portfolio (4%)
-  if (profile.portfolio && profile.portfolio.length > 0) {
-    score += 4;
-  } else {
-    missingItems.push({ id: 'portfolio', labelBn: 'সম্পন্ন কাজের স্যাম্পল ছবি বা পোর্টফোলিও যুক্ত করুন', weight: 4 });
-  }
-
-  // 16. Pricing / Rate Card (2%)
-  if (profile.pricing && (profile.pricing.hourlyRate || profile.pricing.dailyRate || profile.pricing.visitFee)) {
-    score += 2;
-  } else {
-    missingItems.push({ id: 'pricing', labelBn: 'আপনার কাজের মূল্য ও রেট চার্ট নির্ধারণ করুন', weight: 2 });
+    missingItems.push({ id: 'serviceArea', labelBn: 'সেবা প্রদানের এলাকা (Service Area) নির্বাচন করুন', weight: 10 });
   }
 
   const finalScore = Math.min(100, Math.max(0, score));

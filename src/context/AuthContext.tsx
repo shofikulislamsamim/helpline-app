@@ -31,12 +31,6 @@ import {
   maskDocumentNumber, 
   getDocumentTypeInfo 
 } from '../lib/verificationHelpers';
-import { 
-  getNotificationPermission, 
-  requestNotificationPermission, 
-  dispatchBrowserNotification, 
-  PushNotificationStatus 
-} from '../lib/pushNotifications';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
@@ -82,8 +76,6 @@ interface AuthContextType {
   addNotification: (notif: Omit<AppNotification, 'id' | 'createdAt'>) => void;
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
-  pushNotificationStatus: PushNotificationStatus;
-  requestPushPermission: () => Promise<PushNotificationStatus>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -546,16 +538,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const profileRef = doc(db, 'userProfiles', currentUser.uid);
         await setDoc(profileRef, updated, { merge: true });
-
-        // Synchronize auth user photoURL and displayName
-        if (updated.avatarUrl !== undefined || updated.fullName) {
-          await fbUpdateProfile(currentUser, {
-            displayName: updated.fullName || currentUser.displayName,
-            photoURL: updated.avatarUrl || null,
-          }).catch((err) => {
-            console.warn('Sync fbUpdateProfile non-critical warning:', err);
-          });
-        }
       } catch (err: any) {
         handleFirestoreError(err, OperationType.UPDATE, `userProfiles/${currentUser.uid}`);
       }
@@ -957,37 +939,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const [pushNotificationStatus, setPushNotificationStatus] = useState<PushNotificationStatus>(() =>
-    getNotificationPermission()
-  );
-
-  const requestPushPermission = async (): Promise<PushNotificationStatus> => {
-    const status = await requestNotificationPermission();
-    setPushNotificationStatus(status);
-    return status;
-  };
-
-  const addNotification = async (notif: Omit<AppNotification, 'id' | 'createdAt'>) => {
+  const addNotification = (notif: Omit<AppNotification, 'id' | 'createdAt'>) => {
     const newNotif: AppNotification = {
       ...notif,
       id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       createdAt: new Date().toISOString(),
     };
     setNotifications((prev) => [newNotif, ...prev]);
-
-    // Save to Firestore notifications collection if user is authenticated or demo mode
-    try {
-      await addDoc(collection(db, 'notifications'), newNotif);
-    } catch (err) {
-      console.debug('Firestore notification sync notice (persisted in local state):', err);
-    }
-
-    // Trigger native browser notification if granted
-    dispatchBrowserNotification({
-      title: newNotif.titleBn,
-      body: newNotif.messageBn,
-      tag: newNotif.type,
-    });
   };
 
   const markNotificationAsRead = (id: string) => {
@@ -1038,9 +996,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notifications,
         addNotification,
         markNotificationAsRead,
-        markAllNotificationsAsRead,
-        pushNotificationStatus,
-        requestPushPermission
+        markAllNotificationsAsRead
       }}
     >
       {children}
