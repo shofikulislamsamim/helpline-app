@@ -5,17 +5,20 @@ import {
   MapPin, 
   Briefcase, 
   Clock, 
-  ShieldCheck, 
-  PhoneCall, 
   Eye, 
   Send,
-  Navigation
+  Navigation,
+  Sparkles,
+  Layers,
+  Tag
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { getWorkerDistanceResult, CustomerLocationQuery } from '../../lib/geoDistance';
+import { isWorkerInServiceType, getSafeWorkerLocationDisplay } from '../../lib/hireSearchEngine';
 
 interface WorkerCardProps {
   worker: UserProfile;
+  serviceType?: 'physical' | 'digital';
   customerLocation?: CustomerLocationQuery;
   onViewProfile: (worker: UserProfile) => void;
   onHireRequest: (worker: UserProfile) => void;
@@ -23,6 +26,7 @@ interface WorkerCardProps {
 
 export const WorkerCard: React.FC<WorkerCardProps> = ({
   worker,
+  serviceType,
   customerLocation,
   onViewProfile,
   onHireRequest,
@@ -30,19 +34,69 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({
   const isOnline = worker.isOnline;
   const isVerified = worker.verificationStatus === 'verified' || worker.verificationStatus === 'approved';
   const mainProf = worker.mainProfession || worker.professions?.[0] || 'দক্ষ কারিগর';
-  const experienceYears = worker.experiences?.[0]?.years || 3;
-  const topSkills = (worker.skills || []).slice(0, 3);
+  const experienceYears = worker.experiences?.[0]?.years || 2;
+  const topSkills = (worker.skills || []).slice(0, 4);
   const rating = worker.rating || 5.0;
   const reviewCount = worker.reviewCount || 0;
   const completedJobs = worker.completedJobsCount || 0;
 
-  // Calculate real distance & matching hierarchy
-  const distanceResult = getWorkerDistanceResult(worker, customerLocation);
+  // Determine effective service mode
+  const isDigital = serviceType === 'digital' || (serviceType === undefined && isWorkerInServiceType(worker, 'digital'));
+
+  // Calculate distance only for physical services
+  const distanceResult = !isDigital ? getWorkerDistanceResult(worker, customerLocation) : null;
+  const safeLocation = getSafeWorkerLocationDisplay(worker, isDigital ? 'digital' : 'physical');
+
+  // Rate Card or Starting Price display
+  const priceDisplay = worker.pricing?.rateDescription || 
+    (worker.pricing?.hourlyRate ? `৳${worker.pricing.hourlyRate}/ঘণ্টা` : null) ||
+    (worker.pricing?.dailyRate ? `৳${worker.pricing.dailyRate}/দিন` : null) ||
+    (worker.pricing?.visitFee ? `ভিজিট ফি: ৳${worker.pricing.visitFee}` : null);
+
+  const hasPortfolio = isDigital && worker.portfolio && worker.portfolio.length > 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
+    <div className="bg-white rounded-3xl border border-slate-200/90 hover:border-blue-300 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group">
       <div>
-        {/* Top Info: Avatar, Verification, Online status */}
+        {/* Service Type Tag & Status Bar */}
+        <div className="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-100">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isDigital ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200/70 text-[11px] font-bold">
+                <span>💻</span>
+                <span>ডিজিটাল সেবা</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/70 text-[11px] font-bold">
+                <span>📍</span>
+                <span>লোকাল সেবা</span>
+              </span>
+            )}
+
+            {isVerified && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold"
+                title="HelpLine এনআইডি ও প্রোফাইল যাচাইকৃত"
+              >
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span>যাচাইকৃত</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+              }`}
+            />
+            <span className={`text-[11px] font-bold ${isOnline ? 'text-emerald-700' : 'text-slate-500'}`}>
+              {isOnline ? 'Available Now' : 'Offline'}
+            </span>
+          </div>
+        </div>
+
+        {/* Worker Info: Avatar & Main Credentials */}
         <div className="flex items-start gap-3.5">
           <div className="relative shrink-0">
             <img
@@ -55,100 +109,122 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({
               alt={worker.fullName}
               className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border-2 border-white shadow-xs"
             />
-            {/* Online Indicator */}
             <span
               className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
                 isOnline ? 'bg-emerald-500' : 'bg-slate-400'
               }`}
-              title={isOnline ? '🟢 Available Now' : '🔴 Currently Offline'}
             />
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate group-hover:text-blue-600 transition">
-                {worker.fullName}
-              </h3>
-              {isVerified && (
-                <span
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold shrink-0"
-                  title="এনআইডি ও পরিচয়পত্র যাচাইকৃত"
-                >
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                  <span>যাচাইকৃত</span>
-                </span>
-              )}
-            </div>
+            <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate group-hover:text-blue-600 transition">
+              {worker.fullName}
+            </h3>
 
             {/* Profession */}
             <p className="text-xs font-semibold text-blue-700 mt-0.5 truncate flex items-center gap-1">
-              <Briefcase className="w-3 h-3 shrink-0" />
+              <Briefcase className="w-3.5 h-3.5 shrink-0" />
               <span>{mainProf}</span>
             </p>
 
             {/* Rating & Completed Jobs */}
-            <div className="flex items-center gap-3 mt-1 text-xs text-slate-600 flex-wrap">
+            <div className="flex items-center gap-2.5 mt-1 text-xs text-slate-600 flex-wrap">
               <div className="flex items-center gap-1 font-bold text-amber-500">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                 <span className="text-slate-800">{rating.toFixed(1)}</span>
-                <span className="text-slate-600 font-normal">({reviewCount})</span>
+                <span className="text-slate-500 font-normal">({reviewCount})</span>
               </div>
               <span className="text-slate-300">•</span>
-              <span className="text-slate-600 text-xs">
+              <span className="text-slate-600 text-xs font-medium">
                 <strong>{completedJobs}</strong>টি কাজ সম্পন্ন
               </span>
             </div>
           </div>
         </div>
 
-        {/* Experience & Location */}
-        <div className="grid grid-cols-2 gap-2 mt-3.5 py-2.5 px-3 bg-slate-50 rounded-xl text-xs text-slate-600">
+        {/* Experience & Location/Delivery Grid */}
+        <div className="grid grid-cols-2 gap-2 mt-3.5 py-2 px-3 bg-slate-50/80 rounded-xl text-xs text-slate-600 border border-slate-100">
           <div className="flex items-center gap-1.5 truncate">
             <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span className="truncate">{experienceYears} বছরের অভিজ্ঞতা</span>
           </div>
+
           <div className="flex items-center gap-1.5 truncate">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="truncate">
-              {worker.presentAddress?.upazila || worker.serviceAreas?.[0] || 'ঢাকা'}
+            <span className="truncate" title={safeLocation}>
+              {safeLocation}
             </span>
           </div>
         </div>
 
-        {/* Distance & Proximity Indicator */}
-        {distanceResult && (
-          <div className="mt-2 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200/60 text-[11px]">
+        {/* Physical Services Proximity / Distance (Strictly HIDDEN for Digital Services) */}
+        {!isDigital && distanceResult && (
+          <div className="mt-2 flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-blue-50/50 border border-blue-100 text-[11px]">
             <div className="flex items-center gap-1.5 truncate">
-              {distanceResult.matchType === 'live_gps' ? (
+              {distanceResult.matchType === 'live_gps' && isOnline ? (
                 <>
                   <Navigation className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span className="text-blue-700 font-bold truncate">
+                  <span className="text-blue-800 font-bold truncate">
                     {distanceResult.formattedDistance} দূরে
                   </span>
-                  <span className="text-slate-400 text-[10px] hidden sm:inline">(লাইভ জিপিএস)</span>
+                  <span className="text-blue-600 text-[10px] hidden sm:inline">(লাইভ জিপিএস)</span>
                 </>
               ) : distanceResult.matchType === 'upazila_match' ? (
                 <>
                   <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span className="text-emerald-700 font-semibold truncate">{distanceResult.matchLabelBn}</span>
+                  <span className="text-emerald-800 font-semibold truncate">{distanceResult.matchLabelBn}</span>
                 </>
               ) : distanceResult.matchType === 'service_area_match' ? (
+                <>
+                  <MapPin className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                  <span className="text-slate-800 truncate">{distanceResult.matchLabelBn}</span>
+                </>
+              ) : (
                 <>
                   <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span className="text-slate-700 truncate">{distanceResult.matchLabelBn}</span>
                 </>
-              ) : (
-                <>
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="text-slate-500 truncate">{distanceResult.matchLabelBn}</span>
-                </>
               )}
             </div>
             {distanceResult.matchType === 'live_gps' && isOnline && (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded shrink-0">
-                লাইভ
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded shrink-0">
+                লাইভ অবস্থান
               </span>
             )}
+          </div>
+        )}
+
+        {/* Digital Services Highlights: Portfolio & Rate Card */}
+        {isDigital && (
+          <div className="mt-2.5 flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-violet-50/60 border border-violet-100 text-[11px] text-violet-900">
+            <div className="flex items-center gap-1.5 truncate">
+              {hasPortfolio ? (
+                <>
+                  <Layers className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                  <span className="font-bold text-violet-800 truncate">
+                    🎨 {worker.portfolio!.length}টি পোর্টফোলিও প্রজেক্ট
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                  <span className="font-semibold text-violet-800 truncate">
+                    অনলাইন / রিমোট ডেলিভারি
+                  </span>
+                </>
+              )}
+            </div>
+            <span className="text-[10px] text-violet-700 font-medium shrink-0">
+              সারা দেশ থেকে কাজ দেওয়া যাবে
+            </span>
+          </div>
+        )}
+
+        {/* Pricing & Rate info if available */}
+        {priceDisplay && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-700">
+            <Tag className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span className="font-bold text-emerald-700 truncate">{priceDisplay}</span>
           </div>
         )}
 
@@ -166,37 +242,39 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({
           </div>
         )}
 
-        {/* Service Areas */}
-        {worker.serviceAreas && worker.serviceAreas.length > 0 && (
-          <p className="text-[11px] text-slate-600 mt-2.5 truncate">
+        {/* Service Area for Physical */}
+        {!isDigital && worker.serviceAreas && worker.serviceAreas.length > 0 && (
+          <p className="text-[11px] text-slate-500 mt-2 truncate">
             <strong className="text-slate-600 font-semibold">কাজের এলাকা:</strong>{' '}
             {worker.serviceAreas.slice(0, 3).join(', ')}
           </p>
         )}
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons: [View Profile / প্রোফাইল দেখুন] */}
       <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
         <button
           type="button"
           onClick={() => onViewProfile(worker)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition cursor-pointer"
         >
-          <Eye className="w-3.5 h-3.5" />
-          <span>Profile দেখুন</span>
+          <Eye className="w-3.5 h-3.5 text-slate-600" />
+          <span>প্রোফাইল দেখুন (View Profile)</span>
         </button>
 
         <button
           type="button"
           onClick={() => onHireRequest(worker)}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs ${
             isOnline
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              ? isDigital 
+                ? 'bg-violet-600 hover:bg-violet-700 text-white' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
               : 'bg-slate-800 hover:bg-slate-900 text-white'
           }`}
         >
           <Send className="w-3.5 h-3.5" />
-          <span>কাজের অনুরোধ</span>
+          <span>{isDigital ? 'অর্ডার / অনুরোধ' : 'কাজের অনুরোধ'}</span>
         </button>
       </div>
     </div>

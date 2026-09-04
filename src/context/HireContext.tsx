@@ -107,7 +107,16 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('helpline_registered_workers');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const map = new Map<string, UserProfile>();
+          SAMPLE_SEED_WORKERS.forEach((w) => map.set(w.userId, w));
+          parsed.forEach((w: UserProfile) => {
+            const existing = map.get(w.userId);
+            map.set(w.userId, existing ? { ...existing, ...w } : w);
+          });
+          return Array.from(map.values());
+        }
       } catch (e) {
         console.error(e);
       }

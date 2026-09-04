@@ -546,6 +546,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const profileRef = doc(db, 'userProfiles', currentUser.uid);
         await setDoc(profileRef, updated, { merge: true });
+
+        // Synchronize auth user photoURL and displayName
+        if (updated.avatarUrl !== undefined || updated.fullName) {
+          await fbUpdateProfile(currentUser, {
+            displayName: updated.fullName || currentUser.displayName,
+            photoURL: updated.avatarUrl || null,
+          }).catch((err) => {
+            console.warn('Sync fbUpdateProfile non-critical warning:', err);
+          });
+        }
       } catch (err: any) {
         handleFirestoreError(err, OperationType.UPDATE, `userProfiles/${currentUser.uid}`);
       }

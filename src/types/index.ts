@@ -18,6 +18,30 @@ export type UserRoleType =
 
 export type CapabilityType = UserRoleType;
 
+export type ServiceCategoryMode = 'physical' | 'digital';
+
+export interface UserProfessionItem {
+  id: string;
+  nameBn: string;
+  nameEn?: string;
+  categoryMode: ServiceCategoryMode; // 'physical' (📍 Physical/Local) | 'digital' (💻 Freelance/Digital)
+  isCustom?: boolean;
+  status?: 'approved' | 'pending';
+  skills: string[];
+  yearsOfExperience?: number;
+  isMain?: boolean;
+  description?: string;
+  createdAt?: string;
+}
+
+export interface CustomSkillItem {
+  name: string;
+  professionId?: string;
+  professionName?: string;
+  isCustom?: boolean;
+  createdAt?: string;
+}
+
 export interface ProfessionExperience {
   profession: string;
   years: number;
@@ -194,6 +218,38 @@ export interface LiveLocation {
   sharePermissionGranted: boolean;
 }
 
+export type ServiceDeliveryType = 
+  | 'on_demand'
+  | 'daily'
+  | 'contractual'
+  | 'full_time'
+  | 'part_time'
+  | 'remote';
+
+export interface PortfolioItem {
+  id: string;
+  title: string;
+  description?: string;
+  imageUrl: string;
+  completedAt?: string;
+  profession?: string;
+}
+
+export interface PricingRateCard {
+  hourlyRate?: number;
+  dailyRate?: number;
+  visitFee?: number;
+  isNegotiable: boolean;
+  rateDescription?: string;
+}
+
+export interface PrivacySettings {
+  phoneVisibility: 'public' | 'hirers_only' | 'hidden';
+  addressVisibility: 'full' | 'area_only' | 'city_only';
+  showLiveLocation: boolean;
+  showOnlineStatus: boolean;
+}
+
 export interface UserProfile {
   userId: string;
   fullName: string;
@@ -213,9 +269,18 @@ export interface UserProfile {
   professions: string[];
   mainProfession?: string;
   skills: string[];
+  serviceCategoryModes?: ServiceCategoryMode[];
+  userProfessions?: UserProfessionItem[];
+  customProfessions?: UserProfessionItem[];
+  searchKeywords?: string[];
+  searchKeywordsNormalized?: string[];
+  serviceTypes?: ServiceDeliveryType[];
   experiences?: ProfessionExperience[];
   workHistories?: WorkHistory[];
   serviceAreas?: string[];
+  portfolio?: PortfolioItem[];
+  pricing?: PricingRateCard;
+  privacySettings?: PrivacySettings;
   presentAddress: PresentAddress;
   currentLocation?: LiveLocation;
   rating: number;
