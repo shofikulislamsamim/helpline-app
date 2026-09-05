@@ -9,8 +9,7 @@ import {
   UserComplaint, 
   HireAdminSettings, 
   UserProfile,
-  ServiceFeeBreakdown,
-  LiveTrackingData 
+  ServiceFeeBreakdown 
 } from '../types';
 import { 
   DEFAULT_HIRE_ADMIN_SETTINGS, 
@@ -20,7 +19,7 @@ import {
 } from '../lib/hireData';
 import { calculateServiceFee } from '../lib/feeCalculator';
 import { useAuth } from './AuthContext';
-import { doc, setDoc, getDocs, collection, updateDoc, addDoc, onSnapshot, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 interface CreateHireRequestParams {
@@ -66,7 +65,6 @@ interface HireContextType {
   rejectRequest: (requestId: string, reason?: string) => Promise<void>;
   advanceJobStatus: (requestId: string, nextStatus: 'ON_THE_WAY' | 'WORK_STARTED' | 'WORK_COMPLETED') => Promise<void>;
   cancelRequest: (requestId: string, reason: string, by: 'customer' | 'worker') => Promise<void>;
-  updateLiveTracking: (requestId: string, trackingData: LiveTrackingData) => Promise<void>;
   // Ratings & Complaints
   submitRating: (hireRequestId: string, rating: number, comment: string) => Promise<void>;
   submitComplaint: (hireRequestId: string, reason: string, details: string) => Promise<UserComplaint>;
@@ -87,34 +85,6 @@ interface HireContextType {
 
 const HireContext = createContext<HireContextType | undefined>(undefined);
 
-// Sanitizes a worker profile for public HIRE search/view, completely stripping
-// raw live GPS coordinates, detailed private flat/holding addresses, and sensitive PII.
-export const sanitizePublicWorkerProfile = (worker: UserProfile): UserProfile => {
-  const { currentLocation, ...rest } = worker;
-  const sanitizedAddress = worker.presentAddress
-    ? {
-        division: worker.presentAddress.division || 'ঢাকা',
-        district: worker.presentAddress.district || 'ঢাকা',
-        upazila: worker.presentAddress.upazila || '',
-        unionWard: worker.presentAddress.unionWard || '',
-        areaRoad: worker.privacySettings?.addressVisibility === 'city_only' ? '' : worker.presentAddress.areaRoad || '',
-        fullAddress:
-          worker.privacySettings?.addressVisibility === 'city_only'
-            ? worker.presentAddress.district || 'ঢাকা'
-            : `${worker.presentAddress.upazila || ''}, ${worker.presentAddress.district || ''}`.replace(/^,\s*/, '') || 'ঢাকা',
-      }
-    : worker.presentAddress;
-
-  const isPhoneHidden = worker.privacySettings?.phoneVisibility === 'hidden';
-
-  return {
-    ...rest,
-    currentLocation: undefined,
-    presentAddress: sanitizedAddress,
-    phoneNumber: isPhoneHidden ? '০১৭**-******' : worker.phoneNumber,
-  };
-};
-
 export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userProfile, currentUser, addNotification } = useAuth();
   const [activeRequestIdForDetails, setActiveRequestIdForDetails] = useState<string | null>(null);
@@ -132,20 +102,18 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return DEFAULT_HIRE_ADMIN_SETTINGS;
   });
 
-  // Workers List (Sample seed + dynamically registered workers) - sanitized for public privacy
+  // Workers List (Sample seed + dynamically registered workers)
   const [workers, setWorkers] = useState<UserProfile[]>(() => {
-    const sanitizedSeed = SAMPLE_SEED_WORKERS.map(sanitizePublicWorkerProfile);
     const saved = localStorage.getItem('helpline_registered_workers');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const map = new Map<string, UserProfile>();
-          sanitizedSeed.forEach((w) => map.set(w.userId, w));
+          SAMPLE_SEED_WORKERS.forEach((w) => map.set(w.userId, w));
           parsed.forEach((w: UserProfile) => {
-            const sanitized = sanitizePublicWorkerProfile(w);
-            const existing = map.get(sanitized.userId);
-            map.set(sanitized.userId, existing ? { ...existing, ...sanitized } : sanitized);
+            const existing = map.get(w.userId);
+            map.set(w.userId, existing ? { ...existing, ...w } : w);
           });
           return Array.from(map.values());
         }
@@ -153,7 +121,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error(e);
       }
     }
-    return sanitizedSeed;
+    return SAMPLE_SEED_WORKERS;
   });
 
   // Hire Requests
@@ -281,38 +249,32 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('helpline_complaints', JSON.stringify(complaints));
   }, [complaints]);
 
-  // Keep logged in user worker status in workers list if they have 'worker' capability (sanitized for public view)
+  // Keep logged in user worker status in workers list if they have 'worker' capability
   useEffect(() => {
     const isWorker = userProfile?.capabilities?.includes('worker') || userProfile?.roles?.includes('worker');
     if (userProfile && isWorker && userProfile.professions && userProfile.professions.length > 0) {
-      const publicWorker = sanitizePublicWorkerProfile(userProfile);
       setWorkers((prev) => {
-        const index = prev.findIndex((w) => w.userId === publicWorker.userId);
+        const index = prev.findIndex((w) => w.userId === userProfile.userId);
         if (index >= 0) {
           const updated = [...prev];
-          updated[index] = { ...updated[index], ...publicWorker };
+          updated[index] = { ...updated[index], ...userProfile };
           return updated;
         } else {
-          return [publicWorker, ...prev];
+          return [userProfile, ...prev];
         }
       });
     }
   }, [userProfile]);
 
-  // Real-time synchronization of serviceRequests from Firestore
-  // Secure: Only queries customer or worker records matching authenticated user, or all if admin
+  // Read serviceRequests from Firestore if available
   useEffect(() => {
-    if (!currentUser) return;
-
-    try {
-      const isUserAdmin = currentUser.email === 'sk82716102@gmail.com';
-      const unsubs: (() => void)[] = [];
-
-      const handleSnap = (snap: any) => {
+    const fetchFirestoreRequests = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'serviceRequests'));
         if (!snap.empty) {
           const list: HireRequest[] = [];
-          snap.forEach((d: any) => {
-            list.push({ ...(d.data() as HireRequest), id: d.id });
+          snap.forEach((doc) => {
+            list.push({ ...(doc.data() as HireRequest), id: doc.id });
           });
           // Merge with existing requests without losing state
           setHireRequests((prev) => {
@@ -322,38 +284,13 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return Array.from(map.values());
           });
         }
-      };
-
-      if (isUserAdmin) {
-        const u = onSnapshot(
-          collection(db, 'serviceRequests'),
-          handleSnap,
-          (err) => {
-            console.warn('Admin serviceRequests live sync notice:', err);
-          }
-        );
-        unsubs.push(u);
-      } else {
-        const u1 = onSnapshot(
-          query(collection(db, 'serviceRequests'), where('customerId', '==', currentUser.uid)),
-          handleSnap,
-          (err) => console.debug('Customer serviceRequests sync notice:', err)
-        );
-        const u2 = onSnapshot(
-          query(collection(db, 'serviceRequests'), where('workerId', '==', currentUser.uid)),
-          handleSnap,
-          (err) => console.debug('Worker serviceRequests sync notice:', err)
-        );
-        unsubs.push(u1, u2);
+      } catch (err) {
+        // Fallback gracefully to local mock state
+        console.warn('Firestore serviceRequests fetch notice (fallback active):', err);
       }
-
-      return () => {
-        unsubs.forEach((u) => u());
-      };
-    } catch (err) {
-      console.warn('Firestore live sync initialization warning:', err);
-    }
-  }, [currentUser]);
+    };
+    fetchFirestoreRequests();
+  }, []);
 
   const updateAdminSettings = (newSettings: Partial<HireAdminSettings>) => {
     setAdminSettings((prev) => ({ ...prev, ...newSettings }));
@@ -748,16 +685,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: 'pending',
         isRead: false,
       });
-
-      // Stop tracking immediately upon completion (Rule 9)
-      if (target.tracking) {
-        patch.tracking = {
-          ...target.tracking,
-          isActive: false,
-          statusMessage: 'কাজ সফলভাবে সম্পন্ন হয়েছে, লাইভ ট্র্যাকিং সমাপ্ত।',
-          lastUpdated: now,
-        };
-      }
     }
 
     setHireRequests((prev) =>
@@ -826,15 +753,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const now = new Date().toISOString();
-    const deactivatedTracking = target.tracking
-      ? {
-          ...target.tracking,
-          isActive: false,
-          statusMessage: 'কাজটি বাতিল হয়েছে, লাইভ ট্র্যাকিং বন্ধ।',
-          lastUpdated: now,
-        }
-      : undefined;
-
     setHireRequests((prev) =>
       prev.map((r) =>
         r.id === requestId
@@ -844,7 +762,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
               cancelledBy: by,
               cancellationReason: reason,
               cancelledAt: now,
-              tracking: deactivatedTracking,
             }
           : r
       )
@@ -885,25 +802,9 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cancelledBy: by,
         cancellationReason: reason,
         cancelledAt: now,
-        tracking: deactivatedTracking,
       });
     } catch (err) {
       console.warn('Firestore cancel sync notice:', err);
-    }
-  };
-
-  // Real-Time Live Tracking Update (Rule 8: sync to customer & Firestore in real-time)
-  const updateLiveTracking = async (requestId: string, trackingData: LiveTrackingData) => {
-    setHireRequests((prev) =>
-      prev.map((r) => (r.id === requestId ? { ...r, tracking: trackingData } : r))
-    );
-
-    try {
-      await updateDoc(doc(db, 'serviceRequests', requestId), {
-        tracking: trackingData,
-      });
-    } catch (err) {
-      console.warn('Firestore live tracking sync notice (local state updated):', err);
     }
   };
 
@@ -1214,7 +1115,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rejectRequest,
         advanceJobStatus,
         cancelRequest,
-        updateLiveTracking,
         submitRating,
         submitComplaint,
         updateComplaintStatus,

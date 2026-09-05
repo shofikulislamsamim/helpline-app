@@ -23,8 +23,6 @@ import { RatingModal } from '../components/hire/RatingModal';
 import { JobComplaintModal } from '../components/hire/JobComplaintModal';
 import { JobChatModal } from '../components/hire/JobChatModal';
 import { SendQuoteModal } from '../components/hire/SendQuoteModal';
-import { ActiveJobLiveTrackingMap } from '../components/work/ActiveJobLiveTrackingMap';
-import { isPhysicalJob } from '../lib/trackingUtils';
 
 interface ActivityPageProps {
   onNavigate: (view: string) => void;
@@ -36,8 +34,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
     hireRequests, 
     acceptQuote, 
     cancelRequest, 
-    advanceJobStatus,
-    updateLiveTracking 
+    advanceJobStatus 
   } = useHire();
 
   const [perspective, setPerspective] = useState<'customer' | 'worker'>('customer');
@@ -301,38 +298,6 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
                         <span className="text-amber-800 italic ml-2">"{req.ratingComment}"</span>
                       )}
                     </div>
-                  </div>
-                )}
-
-                {/* Real-Time Live Tracking Map (Rule 8: Customer live tracking view for physical jobs) */}
-                {['ACCEPTED', 'ON_THE_WAY', 'WORK_STARTED'].includes(req.status) && isPhysicalJob(req) && (
-                  <div className="mt-1">
-                    <ActiveJobLiveTrackingMap
-                      request={req}
-                      perspective={perspective}
-                      isWorkerOnline={req.tracking ? req.tracking.isWorkerOnline : true}
-                      onUpdateTracking={(data) => updateLiveTracking(req.id, data)}
-                    />
-                  </div>
-                )}
-
-                {/* Digital Job Notice (Rule 12: No GPS/Route for digital freelance work) */}
-                {['ACCEPTED', 'ON_THE_WAY', 'WORK_STARTED'].includes(req.status) && !isPhysicalJob(req) && (
-                  <div className="p-3.5 bg-blue-50/70 rounded-2xl border border-blue-200/80 flex items-center justify-between gap-3 text-xs text-blue-900">
-                    <div className="flex items-center gap-2.5">
-                      <span className="p-2 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-xs">💻</span>
-                      <div>
-                        <p className="font-bold text-slate-900">ডিজিটাল ফ্রিল্যান্সিং কাজ (রিমোট)</p>
-                        <p className="text-[11px] text-slate-600">এই কাজের জন্য কোনো GPS বা ম্যাপ ট্র্যাকিং নেই। কাজের অগ্রগতি ওয়ার্ক স্লিপ ও চ্যাটে রক্ষিত হবে।</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setRecordRequest(req)}
-                      className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition shrink-0 cursor-pointer shadow-xs"
-                    >
-                      কাজের স্লিপ
-                    </button>
                   </div>
                 )}
 

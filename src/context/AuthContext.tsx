@@ -972,7 +972,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...notif,
       id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       createdAt: new Date().toISOString(),
-      senderId: currentUser ? currentUser.uid : undefined,
     };
     setNotifications((prev) => [newNotif, ...prev]);
 

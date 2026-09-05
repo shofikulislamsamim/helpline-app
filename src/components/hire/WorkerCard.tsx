@@ -20,7 +20,6 @@ interface WorkerCardProps {
   worker: UserProfile;
   serviceType?: 'physical' | 'digital';
   customerLocation?: CustomerLocationQuery;
-  locationMode?: 'live' | 'area';
   onViewProfile: (worker: UserProfile) => void;
   onHireRequest: (worker: UserProfile) => void;
 }
@@ -29,7 +28,6 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({
   worker,
   serviceType,
   customerLocation,
-  locationMode = 'live',
   onViewProfile,
   onHireRequest,
 }) => {
@@ -160,10 +158,10 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({
         </div>
 
         {/* Physical Services Proximity / Distance (Strictly HIDDEN for Digital Services) */}
-        {!isDigital && (
+        {!isDigital && distanceResult && (
           <div className="mt-2 flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-blue-50/50 border border-blue-100 text-[11px]">
             <div className="flex items-center gap-1.5 truncate">
-              {locationMode === 'live' && distanceResult?.matchType === 'live_gps' && isOnline ? (
+              {distanceResult.matchType === 'live_gps' && isOnline ? (
                 <>
                   <Navigation className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                   <span className="text-blue-800 font-bold truncate">
@@ -171,21 +169,12 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({
                   </span>
                   <span className="text-blue-600 text-[10px] hidden sm:inline">(লাইভ জিপিএস)</span>
                 </>
-              ) : locationMode === 'area' ? (
-                <>
-                  <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span className="text-slate-800 font-medium truncate">
-                    {worker.serviceAreas && worker.serviceAreas.length > 0
-                      ? `সার্ভিস এরিয়া: ${worker.serviceAreas.slice(0, 2).join(', ')}`
-                      : `এলাকা: ${safeLocation}`}
-                  </span>
-                </>
-              ) : distanceResult?.matchType === 'upazila_match' ? (
+              ) : distanceResult.matchType === 'upazila_match' ? (
                 <>
                   <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span className="text-emerald-800 font-semibold truncate">{distanceResult.matchLabelBn}</span>
                 </>
-              ) : distanceResult?.matchType === 'service_area_match' ? (
+              ) : distanceResult.matchType === 'service_area_match' ? (
                 <>
                   <MapPin className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                   <span className="text-slate-800 truncate">{distanceResult.matchLabelBn}</span>
@@ -193,19 +182,15 @@ export const WorkerCard: React.FC<WorkerCardProps> = ({
               ) : (
                 <>
                   <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="text-slate-700 truncate">{distanceResult?.matchLabelBn || safeLocation}</span>
+                  <span className="text-slate-700 truncate">{distanceResult.matchLabelBn}</span>
                 </>
               )}
             </div>
-            {locationMode === 'live' && distanceResult?.matchType === 'live_gps' && isOnline ? (
+            {distanceResult.matchType === 'live_gps' && isOnline && (
               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded shrink-0">
                 লাইভ অবস্থান
               </span>
-            ) : locationMode === 'area' ? (
-              <span className="text-[10px] font-semibold text-blue-700 bg-blue-100/70 px-1.5 py-0.2 rounded shrink-0">
-                এলাকা মিল
-              </span>
-            ) : null}
+            )}
           </div>
         )}
 

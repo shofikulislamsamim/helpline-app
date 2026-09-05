@@ -34,13 +34,6 @@ import {
   calculateWorkerRelevance, 
   normalizeSearchText 
 } from '../lib/hireSearchEngine';
-import { 
-  HireLocationSelector, 
-  HireLocationMode, 
-  AreaFilterSelection, 
-  LiveLocationCoordinates 
-} from '../components/hire/HireLocationSelector';
-import { extractCleanGeoName } from '../lib/geoData';
 
 interface HirePageProps {
   onBack?: () => void;
@@ -57,6 +50,9 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
   // Search query & filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
+  const [selectedDivision, setSelectedDivision] = useState<string>('all');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
+  const [selectedUpazila, setSelectedUpazila] = useState<string>('');
   const [minExperience, setMinExperience] = useState<number>(0);
   const [minRating, setMinRating] = useState<number>(0);
   const [onlyOnline, setOnlyOnline] = useState<boolean>(false);
@@ -68,78 +64,45 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
   const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'experience' | 'jobs' | 'relevance'>('distance');
   const [maxDistanceKm, setMaxDistanceKm] = useState<number>(0); // 0 = all distances
 
-  // Top Location Selector State: 'live' vs 'area'
-  const [locationMode, setLocationMode] = useState<HireLocationMode>('live');
-  const [areaSelection, setAreaSelection] = useState<AreaFilterSelection>({
-    division: 'all',
-    district: 'all',
-    upazila: '',
-    union: '',
-    area: '',
-  });
-
-  // Live GPS Coordinates & Location tracking
-  const [liveCoords, setLiveCoords] = useState<LiveLocationCoordinates | null>(() => {
-    if (userProfile.currentLocation?.coordinates) {
-      return {
-        latitude: userProfile.currentLocation.coordinates.latitude,
-        longitude: userProfile.currentLocation.coordinates.longitude,
-      };
-    }
-    return null;
-  });
-  const [isLocating, setIsLocating] = useState(false);
-  const [gpsError, setGpsError] = useState<string | null>(null);
-
-  // Customer location query used for distance computations
+  // Geolocation & Proximity States (Strictly for Physical Services)
   const [customerLocation, setCustomerLocation] = useState<CustomerLocationQuery>(() => ({
     division: userProfile.presentAddress?.division || 'ঢাকা',
     district: userProfile.presentAddress?.district || 'ঢাকা',
     upazila: userProfile.presentAddress?.upazila || 'মিরপুর (১০ নং সেক্টর)',
     coordinates: userProfile.currentLocation?.coordinates || { latitude: 23.8069, longitude: 90.3687 },
   }));
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationSuccessMsg, setLocationSuccessMsg] = useState<string | null>(null);
 
-  // Handle live GPS refresh
-  const handleRefreshGps = () => {
+  // Handle live GPS capture
+  const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setGpsError('আপনার ব্রাউজারে Geolocation সাপোর্ট নেই');
+      setLocationSuccessMsg('ব্রাউজারে Geolocation সাপোর্ট নেই');
+      setTimeout(() => setLocationSuccessMsg(null), 3000);
       return;
     }
-    setIsLocating(true);
-    setGpsError(null);
+    setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setIsLocating(false);
-        const coords = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        };
-        setLiveCoords(coords);
+        setIsGettingLocation(false);
         setCustomerLocation((prev) => ({
           ...prev,
-          coordinates: coords,
+          coordinates: {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          },
         }));
+        setLocationSuccessMsg('লাইভ জিপিএস লোকেশন আপডেট হয়েছে!');
+        setTimeout(() => setLocationSuccessMsg(null), 3000);
       },
       (err) => {
-        setIsLocating(false);
+        setIsGettingLocation(false);
         console.warn('Geolocation notice:', err);
-        if (err.code === 1) {
-          setGpsError('ব্রাউজারে লোকেশন পারমিশন ডিনাই করা হয়েছে।');
-        } else if (err.code === 2) {
-          setGpsError('বর্তমান জিপিএস লোকেশন পাওয়া যাচ্ছে না।');
-        } else {
-          setGpsError('লোকেশন পেতে ব্যর্থ হয়েছে।');
-        }
+        setLocationSuccessMsg('ডিফল্ট ঢাকা লোকেশন ব্যবহার হচ্ছে');
+        setTimeout(() => setLocationSuccessMsg(null), 3000);
       },
-      { timeout: 8000, enableHighAccuracy: true }
+      { timeout: 8000 }
     );
-  };
-
-  const handleLocationModeChange = (newMode: HireLocationMode) => {
-    setLocationMode(newMode);
-    if (newMode === 'live' && !liveCoords && !isLocating) {
-      handleRefreshGps();
-    }
   };
 
   // Modal states
@@ -229,61 +192,26 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
 
       // Physical Location filters (Only for Physical Services)
       if (serviceType === 'physical') {
-        if (locationMode === 'live') {
-          // Distance radius filter only applies in Live mode if maxDistanceKm > 0 and liveCoords are available
-          if (maxDistanceKm > 0 && liveCoords) {
-            const distRes = getWorkerDistanceResult(w, customerLocation);
-            if (distRes.matchType === 'live_gps' && distRes.distanceKm !== undefined) {
-              if (distRes.distanceKm > maxDistanceKm) return false;
-            }
-          }
-        } else {
-          // Manual Area Mode: Match Division, District, Upazila/Thana, Union, Area
-          if (areaSelection.division && areaSelection.division !== 'all') {
-            const workerDiv = normalizeSearchText(w.presentAddress?.division || '');
-            const filterDiv = normalizeSearchText(areaSelection.division);
-            const inServiceArea = (w.serviceAreas || []).some((a) =>
-              normalizeSearchText(a).includes(filterDiv)
-            );
-            if (!workerDiv.includes(filterDiv) && !inServiceArea) return false;
-          }
+        if (selectedDivision !== 'all') {
+          if (w.presentAddress?.division !== selectedDivision) return false;
+        }
+        if (selectedDistrict !== 'all') {
+          if (w.presentAddress?.district !== selectedDistrict) return false;
+        }
+        if (selectedUpazila.trim()) {
+          const searchUp = normalizeSearchText(selectedUpazila);
+          const workerUp = normalizeSearchText(w.presentAddress?.upazila || '');
+          const inServiceArea = (w.serviceAreas || []).some((a) =>
+            normalizeSearchText(a).includes(searchUp)
+          );
+          if (!workerUp.includes(searchUp) && !inServiceArea) return false;
+        }
 
-          if (areaSelection.district && areaSelection.district !== 'all') {
-            const workerDist = normalizeSearchText(w.presentAddress?.district || '');
-            const filterDist = normalizeSearchText(areaSelection.district);
-            const inServiceArea = (w.serviceAreas || []).some((a) =>
-              normalizeSearchText(a).includes(filterDist)
-            );
-            if (!workerDist.includes(filterDist) && !inServiceArea) return false;
-          }
-
-          if (areaSelection.upazila && areaSelection.upazila.trim()) {
-            const searchUp = normalizeSearchText(extractCleanGeoName(areaSelection.upazila));
-            const workerUp = normalizeSearchText(w.presentAddress?.upazila || '');
-            const inServiceArea = (w.serviceAreas || []).some((a) =>
-              normalizeSearchText(a).includes(searchUp)
-            );
-            if (!workerUp.includes(searchUp) && !inServiceArea) return false;
-          }
-
-          if (areaSelection.union && areaSelection.union.trim()) {
-            const searchUnion = normalizeSearchText(areaSelection.union);
-            const workerUnion = normalizeSearchText(w.presentAddress?.unionWard || '');
-            const workerFull = normalizeSearchText(w.presentAddress?.fullAddress || '');
-            const inServiceArea = (w.serviceAreas || []).some((a) =>
-              normalizeSearchText(a).includes(searchUnion)
-            );
-            if (!workerUnion.includes(searchUnion) && !workerFull.includes(searchUnion) && !inServiceArea) return false;
-          }
-
-          if (areaSelection.area && areaSelection.area.trim()) {
-            const searchArea = normalizeSearchText(areaSelection.area);
-            const workerArea = normalizeSearchText(w.presentAddress?.areaRoad || '');
-            const workerFull = normalizeSearchText(w.presentAddress?.fullAddress || '');
-            const inServiceArea = (w.serviceAreas || []).some((a) =>
-              normalizeSearchText(a).includes(searchArea)
-            );
-            if (!workerArea.includes(searchArea) && !workerFull.includes(searchArea) && !inServiceArea) return false;
+        // Distance radius filter
+        if (maxDistanceKm > 0) {
+          const distRes = getWorkerDistanceResult(w, customerLocation);
+          if (distRes.matchType === 'live_gps' && distRes.distanceKm !== undefined) {
+            if (distRes.distanceKm > maxDistanceKm) return false;
           }
         }
       }
@@ -335,20 +263,9 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
     }
 
     if (serviceType === 'physical' && sortBy === 'distance') {
-      if (locationMode === 'live' && liveCoords) {
-        // Proximity sort
-        const workersOnly = results.map((item) => item.worker);
-        return sortWorkersByProximity(workersOnly, customerLocation);
-      } else {
-        // Area mode / Non-GPS sorting: rank online first, then relevance score
-        results.sort((a, b) => {
-          if (a.worker.isOnline !== b.worker.isOnline) {
-            return a.worker.isOnline ? -1 : 1;
-          }
-          return b.score - a.score;
-        });
-        return results.map((item) => item.worker);
-      }
+      // Proximity sort
+      const workersOnly = results.map((item) => item.worker);
+      return sortWorkersByProximity(workersOnly, customerLocation);
     }
 
     if (sortBy === 'rating') {
@@ -380,9 +297,9 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
     serviceType,
     searchQuery,
     selectedProfession,
-    locationMode,
-    areaSelection,
-    liveCoords,
+    selectedDivision,
+    selectedDistrict,
+    selectedUpazila,
     minExperience,
     minRating,
     onlyOnline,
@@ -433,23 +350,32 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
               লোকাল অন-সাইট মিস্ত্রি থেকে শুরু করে দক্ষ ডিজিটাল ফ্রিল্যান্সার — সরাসরি যাচাইকৃত কাজের মানুষ খুঁজে নিন।
             </p>
           </div>
-        </div>
 
-        {/* 1. HIRE TOP LOCATION SELECTOR (Dual Mode: 📍 Live Location vs 🗺️ এলাকা দিয়ে খুঁজুন) */}
-        <div className="mt-5">
-          <HireLocationSelector
-            mode={locationMode}
-            onModeChange={handleLocationModeChange}
-            areaSelection={areaSelection}
-            onAreaSelectionChange={setAreaSelection}
-            liveCoords={liveCoords}
-            isLocating={isLocating}
-            gpsError={gpsError}
-            onRefreshGps={handleRefreshGps}
-            radiusKm={maxDistanceKm}
-            onRadiusKmChange={setMaxDistanceKm}
-            isDigitalService={isDigital}
-          />
+          {/* Location Badge (Physical only) */}
+          {!isDigital && (
+            <div className="flex flex-col sm:items-end gap-1.5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-50 px-3 py-2 rounded-2xl border border-slate-200">
+                <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="truncate max-w-[200px]">
+                  {customerLocation.upazila}, {customerLocation.district}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleGetCurrentLocation}
+                  disabled={isGettingLocation}
+                  className="text-blue-600 hover:text-blue-800 font-bold ml-1 cursor-pointer"
+                  title="জিপিএস লোকেশন রিফ্রেশ করুন"
+                >
+                  {isGettingLocation ? '...' : 'পরিবর্তন'}
+                </button>
+              </div>
+              {locationSuccessMsg && (
+                <span className="text-[11px] font-bold text-emerald-600 animate-fadeIn">
+                  ✓ {locationSuccessMsg}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 2. Primary Service Type Switcher (লোকাল সেবা vs ডিজিটাল সেবা) */}
@@ -644,13 +570,9 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
                 type="button"
                 onClick={() => {
                   setSelectedProfession('all');
-                  setAreaSelection({
-                    division: 'all',
-                    district: 'all',
-                    upazila: '',
-                    union: '',
-                    area: '',
-                  });
+                  setSelectedDivision('all');
+                  setSelectedDistrict('all');
+                  setSelectedUpazila('');
                   setMinExperience(0);
                   setMinRating(0);
                   setOnlyOnline(false);
@@ -713,18 +635,17 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
                 </select>
               </div>
 
-              {/* Verification Badge filter (Physical) or Portfolio filter (Digital) */}
+              {/* Location filters (Physical only) */}
               {!isDigital ? (
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">যাচাইকরণ স্ট্যাটাস</label>
-                  <select
-                    value={onlyVerified ? 'verified' : 'all'}
-                    onChange={(e) => setOnlyVerified(e.target.value === 'verified')}
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">এলাকা / থানা</label>
+                  <input
+                    type="text"
+                    value={selectedUpazila}
+                    onChange={(e) => setSelectedUpazila(e.target.value)}
+                    placeholder="যেমন: মিরপুর, উত্তরা, ধানমন্ডি"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800"
-                  >
-                    <option value="verified">🛡️ শুধুমাত্র ভেরিফাইড কর্মী</option>
-                    <option value="all">সকল কর্মী (যাচাইকৃত ও নতুন)</option>
-                  </select>
+                  />
                 </div>
               ) : (
                 <div>
@@ -779,170 +700,85 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
         )}
       </div>
 
-      {/* 6. Worker Results or No-Result Empty State */}
-      {processedWorkers.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-12 text-center space-y-4 shadow-xs">
-          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 mx-auto flex items-center justify-center border border-amber-200">
-            <MapPin className="w-7 h-7" />
+      {/* 6. Online Workers Section (🟢 Available Now) */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+            <h2 className="text-lg font-bold text-slate-900">
+              {isDigital
+                ? 'সক্রিয় ফ্রিল্যান্সার ও ক্রিয়েটর (Available Now)'
+                : 'নিকটস্থ সক্রিয় কর্মী (Available Now)'}
+            </h2>
           </div>
-          <div className="space-y-1.5 max-w-md mx-auto">
-            <h3 className="text-base sm:text-lg font-extrabold text-slate-900">
-              এই এলাকায় আপনার নির্বাচিত সেবার কোনো Worker পাওয়া যায়নি।
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500">
-              {locationMode === 'area'
-                ? 'আপনার নির্বাচিত বিভাগ/উপজেলা বা এলাকার জন্য কোনো সক্রিয় কর্মী পাওয়া যায়নি। অনুগ্রহ করে অন্য কোনো এলাকা নির্বাচন করুন অথবা লাইভ জিপিএস ব্যবহার করুন।'
-                : 'আপনার বর্তমান লোকেশনের নির্বাচিত ব্যাসার্ধে কোনো কর্মী পাওয়া যায়নি। ব্যাসার্ধ বাড়িয়ে দেখতে পারেন বা এলাকা অনুসন্ধান ব্যবহার করতে পারেন।'}
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+            {onlineWorkers.length} জন অনলাইন
+          </span>
+        </div>
+
+        {onlineWorkers.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-8 text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+              <Clock className="w-6 h-6" />
+            </div>
+            <h4 className="font-bold text-slate-700 text-sm">এই মুহূর্তে কোনো কর্মী অনলাইনে নেই</h4>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              নিচের তালিকা থেকে অফলাইন কর্মীদের প্রোফাইল দেখতে পারেন অথবা অগ্রিম কাজের অনুরোধ পাঠাতে পারেন।
             </p>
           </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
-            {locationMode === 'area' ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAreaSelection({
-                      division: 'all',
-                      district: 'all',
-                      upazila: '',
-                      union: '',
-                      area: '',
-                    });
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>🗺️ অন্য এলাকা নির্বাচন করুন</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLocationModeChange('live')}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>📍 Live Location ব্যবহার করুন</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setMaxDistanceKm(0)}
-                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>সকল দূরত্বে খুঁজুন</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLocationModeChange('area')}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>🗺️ এলাকা দিয়ে খুঁজুন</span>
-                </button>
-              </>
-            )}
-
-            {(selectedProfession !== 'all' || searchQuery || minRating > 0 || minExperience > 0 || onlyOnline) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedProfession('all');
-                  setSearchQuery('');
-                  setMinRating(0);
-                  setMinExperience(0);
-                  setOnlyOnline(false);
-                }}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
-              >
-                সব ফিল্টার রিসেট
-              </button>
-            )}
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {onlineWorkers.map((worker) => (
+              <WorkerCard
+                key={worker.userId}
+                worker={worker}
+                serviceType={serviceType}
+                customerLocation={isDigital ? undefined : customerLocation}
+                onViewProfile={(w) => setSelectedWorkerForProfile(w)}
+                onHireRequest={(w) => setSelectedWorkerForHire(w)}
+              />
+            ))}
           </div>
-        </div>
-      ) : (
-        <>
-          {/* 6. Online Workers Section (🟢 Available Now) */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
+        )}
+      </section>
+
+      {/* 7. Offline Workers Section (🔴 Currently Offline) */}
+      {(!onlyOnline && offlineWorkers.length > 0) && (
+        <section className="space-y-4 pt-4 border-t border-slate-200">
+          <div className="flex items-center justify-between">
+            <div>
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
-                <h2 className="text-lg font-bold text-slate-900">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                <h2 className="text-base font-bold text-slate-700">
                   {isDigital
-                    ? 'সক্রিয় ফ্রিল্যান্সার ও ক্রিয়েটর (Available Now)'
-                    : 'নিকটস্থ সক্রিয় কর্মী (Available Now)'}
+                    ? 'অন্যান্য ডিজিটাল প্রফেশনাল (বর্তমানে অফলাইন)'
+                    : 'অন্যান্য তালিকাভুক্ত কর্মী (বর্তমানে অফলাইন)'}
                 </h2>
               </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                {onlineWorkers.length} জন অনলাইন
-              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {isDigital
+                  ? 'অফলাইন প্রফেশনালদের মেসেজ বা কাজের অর্ডার পাঠিয়ে রাখতে পারেন। তারা অনলাইনে এলেই রিপ্লাই দেবেন।'
+                  : 'অফলাইন কর্মীদের ক্ষেত্রে লাইভ অবস্থান দেখানো হয় না। অগ্রিম কাজের অনুরোধ পাঠাতে পারেন।'}
+              </p>
             </div>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+              {offlineWorkers.length} জন
+            </span>
+          </div>
 
-            {onlineWorkers.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-8 text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <h4 className="font-bold text-slate-700 text-sm">এই মুহূর্তে কোনো কর্মী অনলাইনে নেই</h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  নিচের তালিকা থেকে অফলাইন কর্মীদের প্রোফাইল দেখতে পারেন অথবা অগ্রিম কাজের অনুরোধ পাঠাতে পারেন।
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {onlineWorkers.map((worker) => (
-                  <WorkerCard
-                    key={worker.userId}
-                    worker={worker}
-                    serviceType={serviceType}
-                    locationMode={locationMode}
-                    customerLocation={isDigital ? undefined : customerLocation}
-                    onViewProfile={(w) => setSelectedWorkerForProfile(w)}
-                    onHireRequest={(w) => setSelectedWorkerForHire(w)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* 7. Offline Workers Section (🔴 Currently Offline) */}
-          {(!onlyOnline && offlineWorkers.length > 0) && (
-            <section className="space-y-4 pt-4 border-t border-slate-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                    <h2 className="text-base font-bold text-slate-700">
-                      {isDigital
-                        ? 'অন্যান্য ডিজিটাল প্রফেশনাল (বর্তমানে অফলাইন)'
-                        : 'অন্যান্য তালিকাভুক্ত কর্মী (বর্তমানে অফলাইন)'}
-                    </h2>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    {isDigital
-                      ? 'অফলাইন প্রফেশনালদের মেসেজ বা কাজের অর্ডার পাঠিয়ে রাখতে পারেন। তারা অনলাইনে এলেই রিপ্লাই দেবেন।'
-                      : 'অফলাইন কর্মীদের ক্ষেত্রে লাইভ অবস্থান দেখানো হয় না। অগ্রিম কাজের অনুরোধ পাঠাতে পারেন।'}
-                  </p>
-                </div>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
-                  {offlineWorkers.length} জন
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-90">
-                {offlineWorkers.map((worker) => (
-                  <WorkerCard
-                    key={worker.userId}
-                    worker={worker}
-                    serviceType={serviceType}
-                    locationMode={locationMode}
-                    customerLocation={isDigital ? undefined : customerLocation}
-                    onViewProfile={(w) => setSelectedWorkerForProfile(w)}
-                    onHireRequest={(w) => setSelectedWorkerForHire(w)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-        </>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-90">
+            {offlineWorkers.map((worker) => (
+              <WorkerCard
+                key={worker.userId}
+                worker={worker}
+                serviceType={serviceType}
+                customerLocation={isDigital ? undefined : customerLocation}
+                onViewProfile={(w) => setSelectedWorkerForProfile(w)}
+                onHireRequest={(w) => setSelectedWorkerForHire(w)}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Profile Modal */}
