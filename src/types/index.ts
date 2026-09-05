@@ -190,6 +190,7 @@ export interface VerificationAuditLog {
 export interface AppNotification {
   id: string;
   recipientId: string;
+  senderId?: string;
   titleBn: string;
   messageBn: string;
   type: 'verification' | 'system' | 'order' | 'general' | 'chat' | 'hire_request' | 'quote' | 'job_status' | 'commission';
@@ -402,6 +403,10 @@ export interface HireRequest {
     upazila: string;
     areaRoad?: string;
     fullAddress: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
   };
   preferredDate: string;          // পছন্দসই তারিখ
   preferredTime: string;          // পছন্দসই সময়
@@ -433,6 +438,28 @@ export interface HireRequest {
 
   // Automated Service Fee Breakdown (Step 4)
   serviceFeeBreakdown?: ServiceFeeBreakdown;
+
+  // Real-time Live Tracking (Physical jobs only)
+  tracking?: LiveTrackingData;
+}
+
+export interface LiveTrackingData {
+  isActive: boolean;
+  workerLatitude: number;
+  workerLongitude: number;
+  workerHeading?: number | null;
+  workerSpeed?: number | null;
+  workerAccuracy?: number;
+  customerLatitude: number;
+  customerLongitude: number;
+  roadDistanceMeters?: number;
+  roadDistanceText?: string;
+  etaMinutes?: number;
+  etaText?: string;
+  lastUpdated: string;
+  isWorkerOnline: boolean;
+  routeGeometry?: [number, number][]; // [lat, lng] array along actual road
+  statusMessage?: string;
 }
 
 export interface ServiceReview {

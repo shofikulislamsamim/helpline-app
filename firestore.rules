@@ -14,6 +14,11 @@ service cloud.firestore {
          request.auth.token.email in ['sk82716102@gmail.com']);
     }
 
+    // Connection test document
+    match /test/{document} {
+      allow read: if true;
+    }
+
     // App Settings: readable by anyone, writable by admin
     match /appSettings/{document} {
       allow read: if true;
@@ -42,23 +47,46 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // User profiles & credentials
+    // User profiles & credentials:
+    // Protected: full userProfiles document contains private address, live location, and personal info.
+    // Only the account owner or authorized admin may read or write.
     match /users/{userId} {
-      allow read: if true;
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /userProfiles/{userId} {
-      allow read: if true;
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if isAdmin() || (
+        isOwner(userId) &&
+        // Prevent normal users from self-verifying or granting admin privileges
+        (!('verificationStatus' in request.resource.data) || request.resource.data.verificationStatus == resource.data.verificationStatus || request.resource.data.verificationStatus == 'unverified') &&
+        (!('isDriverVerified' in request.resource.data) || request.resource.data.isDriverVerified == resource.data.isDriverVerified || request.resource.data.isDriverVerified == false) &&
+        (!('driverVerificationStatus' in request.resource.data) || request.resource.data.driverVerificationStatus == resource.data.driverVerificationStatus || request.resource.data.driverVerificationStatus == 'unverified')
+      );
       allow delete: if isAdmin();
     }
 
-    match /userRoles/{userId} {
+    // Public Worker Profiles (Sanitized view for HIRE discovery, stripped of exact GPS coordinates and private PII)
+    match /publicWorkerProfiles/{userId} {
       allow read: if true;
+      allow create, update: if (isOwner(userId) || isAdmin()) &&
+        !('currentLocation' in request.resource.data) &&
+        !('documentNumber' in request.resource.data) &&
+        !('nidNumber' in request.resource.data) &&
+        !('passportNumber' in request.resource.data) &&
+        !('drivingLicenseNumber' in request.resource.data) &&
+        !('birthRegistrationNumber' in request.resource.data) &&
+        !('frontDocumentUrl' in request.resource.data) &&
+        !('backDocumentUrl' in request.resource.data);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /userRoles/{userId} {
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
@@ -102,17 +130,84 @@ service cloud.firestore {
       allow update: if isAdmin();
     }
 
-    // Marketplace collections
+    // Service Requests (HIRE module)
+    // 1. Must NOT be publicly readable.
+    // 2. Only assigned customer, assigned worker, or admin may read.
+    // 3. Sensitive fields (customerId, workerId, agreedPrice, status, tracking data, timestamps) strictly protected.
     match /serviceRequests/{id} {
-      allow read: if true;
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
+      allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.customerId || 
         request.auth.uid == resource.data.workerId || 
-        request.auth.uid == resource.data.creatorId || 
         isAdmin()
       );
-      allow delete: if isAdmin() || (isAuthenticated() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.creatorId));
+
+      allow create: if isAuthenticated() && (
+        isAdmin() || (
+          request.auth.uid == request.resource.data.customerId &&
+          request.resource.data.customerId is string &&
+          request.resource.data.workerId is string &&
+          request.resource.data.status == 'REQUESTED' &&
+          !('completedAt' in request.resource.data) &&
+          !('cancelledAt' in request.resource.data) &&
+          (!('tracking' in request.resource.data) || request.resource.data.tracking == null)
+        )
+      );
+
+      allow update: if isAuthenticated() && (
+        isAdmin() || (
+          // Immutable ownership: customerId and workerId cannot be altered
+          request.resource.data.customerId == resource.data.customerId &&
+          request.resource.data.workerId == resource.data.workerId &&
+          (
+            // --- Worker updates ---
+            (request.auth.uid == resource.data.workerId && (
+              // Worker submits quote
+              (resource.data.status == 'REQUESTED' && request.resource.data.status == 'QUOTED') ||
+              // Worker rejects
+              (resource.data.status in ['REQUESTED', 'QUOTED'] && request.resource.data.status == 'REJECTED') ||
+              // Worker starts moving
+              (resource.data.status == 'ACCEPTED' && request.resource.data.status == 'ON_THE_WAY') ||
+              // Worker starts work
+              (resource.data.status in ['ACCEPTED', 'ON_THE_WAY'] && request.resource.data.status == 'WORK_STARTED') ||
+              // Worker completes work (cannot alter agreedPrice)
+              (resource.data.status == 'WORK_STARTED' && request.resource.data.status == 'WORK_COMPLETED' && 
+               request.resource.data.agreedPrice == resource.data.agreedPrice) ||
+              // Worker updates live tracking while job is active
+              (resource.data.status in ['ACCEPTED', 'ON_THE_WAY', 'WORK_STARTED'] && 
+               request.resource.data.status == resource.data.status &&
+               request.resource.data.agreedPrice == resource.data.agreedPrice) ||
+              // Worker cancels allowed before work starts
+              (resource.data.status in ['REQUESTED', 'QUOTED', 'ACCEPTED', 'ON_THE_WAY'] && 
+               request.resource.data.status == 'CANCELLED' && 
+               request.resource.data.cancelledBy == 'worker')
+            ))
+            ||
+            // --- Customer updates ---
+            (request.auth.uid == resource.data.customerId && (
+              // Customer accepts quote and sets agreedPrice
+              (resource.data.status in ['REQUESTED', 'QUOTED'] && 
+               request.resource.data.status == 'ACCEPTED' && 
+               (!('tracking' in request.resource.data) || request.resource.data.tracking == resource.data.tracking)) ||
+              // Customer cancels allowed before work starts
+              (resource.data.status in ['REQUESTED', 'QUOTED', 'ACCEPTED', 'ON_THE_WAY'] && 
+               request.resource.data.status == 'CANCELLED' && 
+               request.resource.data.cancelledBy == 'customer' &&
+               (!('tracking' in request.resource.data) || request.resource.data.tracking == resource.data.tracking || request.resource.data.tracking.isActive == false)) ||
+              // Customer submits rating after completion (cannot touch status, price, or tracking)
+              (resource.data.status == 'WORK_COMPLETED' && 
+               request.resource.data.status == 'WORK_COMPLETED' &&
+               request.resource.data.agreedPrice == resource.data.agreedPrice &&
+               (!('tracking' in request.resource.data) || request.resource.data.tracking == resource.data.tracking))
+            ))
+          )
+        )
+      );
+
+      allow delete: if isAdmin() || (
+        isAuthenticated() && 
+        request.auth.uid == resource.data.customerId && 
+        resource.data.status in ['REQUESTED', 'CANCELLED']
+      );
     }
 
     match /jobs/{id} {
@@ -164,10 +259,32 @@ service cloud.firestore {
     }
 
     // Notifications
+    // 1. User can only read their own notifications or admin.
+    // 2. Normal user cannot create arbitrary notifications for other users.
+    // 3. User can create notifications for themselves, or for valid workflow actions (hire_request, quote, job_status, chat).
+    // 4. Verification and system notifications cannot be forged by normal users.
+    // 5. Updating is restricted to marking isRead.
     match /notifications/{id} {
       allow read: if isAuthenticated() && (request.auth.uid == resource.data.recipientId || isAdmin());
-      allow create: if isAuthenticated() || isAdmin();
-      allow update: if isAuthenticated() && request.auth.uid == resource.data.recipientId;
+      allow create: if isAuthenticated() && (
+        isAdmin() ||
+        request.auth.uid == request.resource.data.recipientId ||
+        (
+          request.resource.data.recipientId is string &&
+          request.resource.data.titleBn is string &&
+          request.resource.data.messageBn is string &&
+          request.resource.data.type in ['general', 'hire_request', 'quote', 'job_status', 'chat', 'order', 'commission'] &&
+          !(request.resource.data.type in ['system', 'verification']) &&
+          (!('senderId' in request.resource.data) || request.resource.data.senderId == request.auth.uid)
+        )
+      );
+      allow update: if isAuthenticated() && (
+        isAdmin() || (
+          request.auth.uid == resource.data.recipientId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead'])
+        )
+      );
+      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.recipientId);
     }
   }
 }

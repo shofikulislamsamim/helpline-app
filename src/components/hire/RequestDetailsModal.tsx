@@ -20,6 +20,8 @@ import {
 import { HireRequest } from '../../types';
 import { calculateServiceFee } from '../../lib/commissionData';
 import { useHire } from '../../context/HireContext';
+import { ActiveJobLiveTrackingMap } from '../work/ActiveJobLiveTrackingMap';
+import { isPhysicalJob } from '../../lib/trackingUtils';
 
 interface RequestDetailsModalProps {
   request: HireRequest | null;
@@ -40,12 +42,12 @@ export const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
   onOpenChat,
   onOpenDigitalRecord,
 }) => {
-  const { commissionSettings } = useHire();
+  const { adminSettings, updateLiveTracking } = useHire();
 
   if (!request) return null;
 
   const basePrice = request.agreedPrice || request.quote?.estimatedPrice || request.budget || 500;
-  const feeBreakdown = request.serviceFeeBreakdown || calculateServiceFee(basePrice, commissionSettings);
+  const feeBreakdown = request.serviceFeeBreakdown || calculateServiceFee(basePrice, adminSettings);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -181,6 +183,30 @@ export const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
               </p>
             )}
           </div>
+
+          {/* Real-time Live Tracking Map (Physical Jobs) */}
+          {['ACCEPTED', 'ON_THE_WAY', 'WORK_STARTED'].includes(request.status) && isPhysicalJob(request) && (
+            <div className="space-y-1">
+              <ActiveJobLiveTrackingMap
+                request={request}
+                perspective="worker"
+                isWorkerOnline={request.tracking ? request.tracking.isWorkerOnline : true}
+                onUpdateTracking={(data) => updateLiveTracking(request.id, data)}
+                compact
+              />
+            </div>
+          )}
+
+          {/* Digital Job Reminder (Rule 12) */}
+          {['ACCEPTED', 'ON_THE_WAY', 'WORK_STARTED'].includes(request.status) && !isPhysicalJob(request) && (
+            <div className="p-3 bg-blue-50/80 rounded-2xl border border-blue-200 text-xs text-blue-900 flex items-center gap-2.5">
+              <span className="p-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs">💻</span>
+              <div>
+                <p className="font-bold">ডিজিটাল কাজ — কোনো GPS ট্র্যাকিং প্রযোজ্য নয়</p>
+                <p className="text-[11px] text-blue-700">ডিজিটাল রেকর্ড স্লিপ বা চ্যাটের মাধ্যমে ফাইলের ডেলিভারি সম্পন্ন করুন।</p>
+              </div>
+            </div>
+          )}
 
           {/* Service Fee Calculation Preview */}
           <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2">
