@@ -9,9 +9,8 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     function isAdmin() {
-      return isAuthenticated() && 
-        (exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)) ||
-         request.auth.token.email in ['sk82716102@gmail.com']);
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
     }
 
     // App Settings: readable by anyone, writable by admin
@@ -72,7 +71,9 @@ service cloud.firestore {
     }
 
     match /adminUsers/{userId} {
-      allow read: if isAuthenticated();
+      // Users may read only their own admin record; admins may read admin records.
+      // Writes are restricted to an already-authorized admin.
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       allow write: if isAdmin();
     }
 
