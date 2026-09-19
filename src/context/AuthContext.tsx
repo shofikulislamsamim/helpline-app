@@ -88,6 +88,53 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+type PublicProfileData = Record<string, unknown>;
+
+/**
+ * Build the intentionally public projection of a user profile.
+ * Sensitive account/contact data and exact live GPS coordinates stay in userProfiles.
+ */
+const buildPublicProfile = (profile: UserProfile): PublicProfileData => ({
+  userId: profile.userId,
+  fullName: profile.fullName,
+  avatarUrl: profile.avatarUrl,
+  bio: profile.bio,
+  isOnline: profile.isOnline,
+  availabilityUpdatedAt: profile.availabilityUpdatedAt,
+  lastActiveAt: profile.lastActiveAt,
+  verificationStatus: profile.verificationStatus,
+  driverVerificationStatus: profile.driverVerificationStatus,
+  capabilities: profile.capabilities,
+  roles: profile.roles,
+  professions: profile.professions,
+  customProfessions: profile.customProfessions,
+  userProfessions: profile.userProfessions,
+  skills: profile.skills,
+  experiences: profile.experiences,
+  workHistories: profile.workHistories,
+  serviceAreas: profile.serviceAreas,
+  mainProfession: profile.mainProfession,
+  serviceCategoryModes: profile.serviceCategoryModes,
+  searchKeywords: profile.searchKeywords,
+  searchKeywordsNormalized: profile.searchKeywordsNormalized,
+  portfolio: profile.portfolio,
+  rating: profile.rating,
+  reviewCount: profile.reviewCount,
+  completedJobsCount: profile.completedJobsCount,
+  privacySettings: profile.privacySettings,
+  presentAddress: profile.presentAddress
+    ? {
+        division: profile.presentAddress.division,
+        district: profile.presentAddress.district,
+        upazila: profile.presentAddress.upazila,
+      }
+    : undefined,
+  profileCompletedPercentage: profile.profileCompletedPercentage,
+  isProfileSetupComplete: profile.isProfileSetupComplete,
+  joinedDate: profile.joinedDate,
+});
+
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
@@ -263,6 +310,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isProfileSetupComplete: isComplete || data.isProfileSetupComplete 
             };
             setUserProfile(enriched);
+            await setDoc(doc(db, 'publicProfiles', user.uid), buildPublicProfile(enriched), { merge: true });
           } else {
             const newProfile: UserProfile = {
               ...INITIAL_USER_PROFILE,
@@ -286,6 +334,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             setUserProfile(newProfile);
             await setDoc(profileRef, newProfile);
+            await setDoc(doc(db, 'publicProfiles', user.uid), buildPublicProfile(newProfile), { merge: true });
 
             // Also create user record in users/{uid}
             await setDoc(doc(db, 'users', user.uid), {
@@ -384,6 +433,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Create in Firestore: userProfiles/{uid}
       await setDoc(doc(db, 'userProfiles', user.uid), newProfile);
+      await setDoc(doc(db, 'publicProfiles', user.uid), buildPublicProfile(newProfile), { merge: true });
 
       // Create in Firestore: userRoles/{uid}
       const roleRecord: UserRoleRecord = {
@@ -473,6 +523,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const profileRef = doc(db, 'userProfiles', currentUser.uid);
         await setDoc(profileRef, updated, { merge: true });
+
+        // Keep only the safe public projection in the public collection.
+        const nextPublicProfile = { ...userProfile, ...updated };
+        await setDoc(
+          doc(db, 'publicProfiles', currentUser.uid),
+          buildPublicProfile(nextPublicProfile),
+          { merge: true }
+        );
       } catch (err) {
         console.warn('Failed to update online status in DB:', err);
       }
