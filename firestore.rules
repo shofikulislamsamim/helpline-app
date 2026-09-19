@@ -43,10 +43,11 @@ service cloud.firestore {
 
     // User profiles & credentials
     match /users/{userId} {
-      allow read: if true;
+      // Private account record: never publicly readable.
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     match /userProfiles/{userId} {
@@ -57,17 +58,18 @@ service cloud.firestore {
     }
 
     match /userRoles/{userId} {
-      allow read: if true;
+      // Authorization/capability data is private.
+      allow read: if isOwner(userId) || isAdmin();
       allow create: if isAuthenticated() && request.auth.uid == userId;
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
 
     match /customCategoryRequests/{reqId} {
-      allow read: if true;
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
       allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
 
     match /adminUsers/{userId} {
