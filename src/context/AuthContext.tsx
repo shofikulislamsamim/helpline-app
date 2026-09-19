@@ -105,9 +105,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { ...INITIAL_USER_PROFILE, profileCompletedPercentage: percentage };
   });
 
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    return localStorage.getItem('helpline_is_admin') === 'true';
-  });
+  // Admin status is NEVER restored from localStorage. Authorization must come
+  // from the authenticated user's server-side adminUsers record / Firestore rules.
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   const [currentAdminRole, setCurrentAdminRole] = useState<AdminRoleType>(() => {
     const saved = localStorage.getItem('helpline_admin_role') as AdminRoleType;
@@ -234,11 +234,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        if (user.email === 'sk82716102@gmail.com') {
-          setIsAdmin(true);
-        }
-
+        // Determine admin status from the authenticated user's adminUsers record.
+        // Client-side localStorage and email addresses are not authorization sources.
         try {
+          const adminRef = doc(db, 'adminUsers', user.uid);
+          const adminSnap = await getDoc(adminRef);
+          if (adminSnap.exists()) {
+            const adminData = adminSnap.data() as { role?: AdminRoleType };
+            const validRoles: AdminRoleType[] = ['super_admin', 'verification_admin', 'moderator', 'support_admin'];
+            const role = validRoles.includes(adminData.role as AdminRoleType)
+              ? (adminData.role as AdminRoleType)
+              : 'moderator';
+            setIsAdmin(true);
+            setCurrentAdminRole(role);
+          } else {
+            setIsAdmin(false);
+            setCurrentAdminRole('super_admin');
+          }
+
           const profileRef = doc(db, 'userProfiles', user.uid);
           const snap = await getDoc(profileRef);
           if (snap.exists()) {
@@ -296,6 +309,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (err) {
           console.warn('Firestore profile sync note:', err);
         }
+      }
+      if (!user) {
+        setIsAdmin(false);
+        setCurrentAdminRole('super_admin');
       }
       setLoading(false);
     });
@@ -404,15 +421,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      if (result.user.email === 'sk82716102@gmail.com') {
-        setIsAdmin(true);
-      }
+      // Admin status is resolved by onAuthStateChanged from adminUsers/{uid}.
       closeAuthModal();
     } catch (error: any) {
       console.warn('Google sign-in popup warning:', error);
       if (error?.code === 'auth/popup-blocked' || error?.code === 'auth/cancelled-popup-request') {
-        loginAsDemoUser();
-        closeAuthModal();
+        // Do not silently create a privileged/demo session on auth failure.
+        // The user must retry authentication normally.
+        throw error;
       } else {
         throw error;
       }
@@ -426,7 +442,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profileCompletedPercentage: percentage,
       isProfileSetupComplete: isComplete,
     });
-    setIsAdmin(true);
+    // Demo mode is a local UI preview only and never grants admin privileges.
+    setIsAdmin(false);
     closeAuthModal();
   };
 
@@ -437,6 +454,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout error:', e);
     }
     setCurrentUser(null);
+    setIsAdmin(false);
+    setCurrentAdminRole('super_admin');
+    localStorage.removeItem('helpline_is_admin');
+    localStorage.removeItem('helpline_admin_role');
   };
 
   const toggleOnlineStatus = async () => {
