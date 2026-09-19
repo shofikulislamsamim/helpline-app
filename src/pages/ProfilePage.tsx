@@ -44,6 +44,8 @@ import { CAPABILITIES_LIST } from '../lib/professionsData';
 import { i18n } from '../lib/i18n';
 import { CapabilityType, UserProfessionItem } from '../types';
 import { buildNormalizedSearchKeywords } from '../lib/searchNormalization';
+import { useLanguage } from '../context/LanguageContext';
+import { LanguageSelector } from '../components/common/LanguageSelector';
 
 interface ProfilePageProps {
   onNavigate: (view: string) => void;
@@ -59,6 +61,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     openProfileSetup, 
     closeProfileSetup 
   } = useAuth();
+  const { t, isBn, formatNumber } = useLanguage();
 
   const [isCustomProfModalOpen, setIsCustomProfModalOpen] = useState(false);
   const [newSkillInput, setNewSkillInput] = useState('');
@@ -167,7 +170,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${
                   userProfile.isOnline ? 'bg-emerald-500' : 'bg-slate-400'
                 }`}
-                title={userProfile.isOnline ? 'অনলাইন (Online)' : 'অফলাইন (Offline)'}
+                title={userProfile.isOnline ? (isBn ? 'অনলাইন (Online)' : 'Online (Active)') : (isBn ? 'অফলাইন (Offline)' : 'Offline')}
               />
             </div>
 
@@ -180,17 +183,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 {userProfile.verificationStatus === 'approved' || userProfile.verificationStatus === 'verified' ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>✓ ভেরিফাইড (Verified)</span>
+                    <span>{isBn ? '✓ ভেরিফাইড (Verified)' : '✓ Verified'}</span>
                   </span>
                 ) : userProfile.verificationStatus === 'under_review' ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
                     <Clock className="w-3.5 h-3.5 text-blue-600" />
-                    <span>🔍 পর্যালোচনা চলছে</span>
+                    <span>{isBn ? '🔍 পর্যালোচনা চলছে' : '🔍 Under Review'}</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
                     <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
-                    <span>অযাচাইকৃত (Unverified)</span>
+                    <span>{isBn ? 'অযাচাইকৃত (Unverified)' : 'Unverified'}</span>
                   </span>
                 )}
 
@@ -198,7 +201,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 {(userProfile.driverVerificationStatus === 'approved' || userProfile.isDriverVerified) && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
                     <span>🚗</span>
-                    <span>ড্রাইভার</span>
+                    <span>{isBn ? 'ড্রাইভার' : 'Driver'}</span>
                   </span>
                 )}
               </div>
@@ -215,13 +218,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                   <MapPin className="w-3.5 h-3.5 text-slate-400" />
                   <span>
                     {userProfile.presentAddress?.upazila ? `${userProfile.presentAddress.upazila}, ` : ''}
-                    {userProfile.presentAddress?.district || 'বাংলাদেশ'}
+                    {userProfile.presentAddress?.district || (isBn ? 'বাংলাদেশ' : 'Bangladesh')}
                   </span>
                 </span>
                 <span className="flex items-center gap-1 font-semibold text-amber-600">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   <span>{(userProfile.rating || 5.0).toFixed(1)}</span>
-                  <span className="text-slate-400 font-normal">({userProfile.reviewCount || 0} রিভিউ)</span>
+                  <span className="text-slate-400 font-normal">({formatNumber(userProfile.reviewCount || 0)} {isBn ? 'রিভিউ' : 'reviews'})</span>
                 </span>
               </div>
 
@@ -231,7 +234,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                   <Phone className="w-3.5 h-3.5 text-slate-400" />
                   <span>
                     {userProfile.privacySettings?.phoneVisibility === 'hidden'
-                      ? '🔒 নম্বর গোপন রাখা হয়েছে'
+                      ? (isBn ? '🔒 নম্বর গোপন রাখা হয়েছে' : '🔒 Number Hidden')
                       : userProfile.phoneNumber}
                   </span>
                 </span>
@@ -251,14 +254,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs shrink-0"
           >
             <Edit3 className="w-4 h-4" />
-            <span>সম্পূর্ণ প্রোফাইল সম্পাদনা করুন</span>
+            <span>{isBn ? 'সম্পূর্ণ প্রোফাইল সম্পাদনা করুন' : 'Edit Full Profile'}</span>
           </button>
         </div>
 
         {/* Bio */}
         {userProfile.bio && (
           <div className="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-700 leading-relaxed">
-            <p className="font-semibold text-slate-900 mb-0.5">পরিচিতি (Bio):</p>
+            <p className="font-semibold text-slate-900 mb-0.5">{isBn ? 'পরিচিতি (Bio):' : 'Bio:'}</p>
             <p>{userProfile.bio}</p>
           </div>
         )}
@@ -835,6 +838,27 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             await updateProfile({ privacySettings: newSettings });
           }}
         />
+      </div>
+
+      {/* Language Preference Section (ভাষা নির্বাচন) */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+              <span className="text-lg">🌐</span>
+              <span>{isBn ? 'ভাষা নির্বাচন (Language Preference)' : 'Language Preference'}</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isBn
+                ? 'HelpLine অ্যাপ্লিকেশনের ভাষা নির্বাচন করুন (বাংলা অথবা English)'
+                : 'Select your preferred language for the HelpLine interface (Bengali or English)'}
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-1">
+          <LanguageSelector variant="full" />
+        </div>
       </div>
 
       {/* 17. Subscription & Payment Overview */}

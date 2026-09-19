@@ -431,6 +431,15 @@ export interface HireRequest {
   ratingComment?: string;
   complaintId?: string;
 
+  // Additional Amount / Revision during active work
+  additionalQuote?: {
+    additionalAmount: number;
+    reason: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    requestedAt: string;
+    respondedAt?: string;
+  };
+
   // Automated Service Fee Breakdown (Step 4)
   serviceFeeBreakdown?: ServiceFeeBreakdown;
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppSettingsProvider } from './context/AppSettingsContext';
 import { HireProvider, useHire } from './context/HireContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { Navbar } from './components/layout/Navbar';
 import { BottomNav } from './components/layout/BottomNav';
 import { AuthModal } from './components/auth/AuthModal';
@@ -23,6 +24,7 @@ function MainApp() {
   const [activeModule, setActiveModule] = useState<ModuleId>('hire');
   const { userProfile, isAuthModalOpen, closeAuthModal } = useAuth();
   const { hireRequests } = useHire();
+  const { t } = useLanguage();
 
   const newRequestsCount = hireRequests.filter(
     (r) =>
@@ -56,7 +58,7 @@ function MainApp() {
         <aside className="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col shrink-0 border-r border-slate-800 select-none">
           <div className="p-5">
             <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-3">
-              Main Modules
+              {t.nav.mainModules}
             </p>
             <nav className="space-y-1">
               <button
@@ -69,7 +71,7 @@ function MainApp() {
                 }`}
               >
                 <span className="text-base">🏠</span>
-                <span>হোম (Home)</span>
+                <span>{t.nav.home}</span>
               </button>
               <button
                 id="sidebar-nav-hire"
@@ -81,7 +83,7 @@ function MainApp() {
                 }`}
               >
                 <span className="text-base">🔧</span>
-                <span>কাজের মানুষ (Hire)</span>
+                <span>{t.nav.hire}</span>
               </button>
               <button
                 id="sidebar-nav-work"
@@ -94,7 +96,7 @@ function MainApp() {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-base">👷</span>
-                  <span>Work / কাজ করতে চাই</span>
+                  <span>{t.nav.work}</span>
                 </div>
                 {newRequestsCount > 0 && (
                   <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black animate-pulse">
@@ -112,7 +114,7 @@ function MainApp() {
                 }`}
               >
                 <span className="text-base">🔍</span>
-                <span>সার্চ (Search)</span>
+                <span>{t.nav.search}</span>
               </button>
               <button
                 id="sidebar-nav-messages"
@@ -124,7 +126,7 @@ function MainApp() {
                 }`}
               >
                 <span className="text-base">💬</span>
-                <span>মেসেজ (Messages)</span>
+                <span>{t.nav.messages}</span>
               </button>
               <button
                 id="sidebar-nav-activity"
@@ -136,7 +138,7 @@ function MainApp() {
                 }`}
               >
                 <span className="text-base">📑</span>
-                <span>হিস্টোরি (Activity)</span>
+                <span>{t.nav.activity}</span>
               </button>
               <button
                 id="sidebar-nav-profile"
@@ -148,7 +150,7 @@ function MainApp() {
                 }`}
               >
                 <span className="text-base">👤</span>
-                <span>প্রোফাইল (Profile)</span>
+                <span>{t.nav.profile}</span>
               </button>
               <button
                 id="sidebar-nav-verification"
@@ -160,7 +162,7 @@ function MainApp() {
                 }`}
               >
                 <span className="text-base">🛡️</span>
-                <span>ভেরিফিকেশন কেন্দ্র</span>
+                <span>{t.nav.verification}</span>
               </button>
               <button
                 id="sidebar-nav-policies"
@@ -172,14 +174,14 @@ function MainApp() {
                 }`}
               >
                 <span className="text-base">📜</span>
-                <span>শর্তাবলী ও পলিসি</span>
+                <span>{t.nav.policies}</span>
               </button>
             </nav>
           </div>
 
           <div className="p-5 mt-auto border-t border-slate-800">
             <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2.5">
-              Admin Access
+              {t.nav.adminAccess}
             </p>
             <button
               id="sidebar-nav-admin"
@@ -187,7 +189,7 @@ function MainApp() {
               className="w-full flex items-center gap-2.5 px-3 py-2 border border-slate-700 rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-medium cursor-pointer transition"
             >
               <span>⚙️</span>
-              <span>এডমিন ড্যাশবোর্ড</span>
+              <span>{t.nav.adminDashboard}</span>
             </button>
           </div>
         </aside>
@@ -232,21 +234,21 @@ function MainApp() {
             <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-800">HelpLine BD</span>
-                <span>— Core Platform Foundation</span>
+                <span>— {t.nav.footerTagline}</span>
               </div>
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => handleNavigate('policies')}
                   className="hover:text-blue-600 transition cursor-pointer"
                 >
-                  ব্যবহারের শর্তাবলী ও নিরাপত্তা নীতি
+                  {t.nav.footerTerms}
                 </button>
                 <span>•</span>
                 <button
                   onClick={() => handleNavigate('admin')}
                   className="text-blue-600 font-semibold hover:underline cursor-pointer"
                 >
-                  Admin Dashboard
+                  {t.nav.adminDashboard}
                 </button>
               </div>
             </div>
@@ -265,12 +267,14 @@ function MainApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppSettingsProvider>
-        <HireProvider>
-          <MainApp />
-        </HireProvider>
-      </AppSettingsProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <AppSettingsProvider>
+          <HireProvider>
+            <MainApp />
+          </HireProvider>
+        </AppSettingsProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

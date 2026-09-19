@@ -1,76 +1,78 @@
 import React from 'react';
 import { Wrench, HardHat, Briefcase, Car, PackageCheck, ShoppingBag, ArrowUpRight } from 'lucide-react';
 import { ModuleId } from '../../types';
-import { i18n } from '../../lib/i18n';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ServiceCardsProps {
   onSelectModule: (moduleId: ModuleId) => void;
 }
 
 export const ServiceCards: React.FC<ServiceCardsProps> = ({ onSelectModule }) => {
+  const { t, formatNumber } = useLanguage();
+
   const serviceCards = [
     {
       id: 'hire' as ModuleId,
-      number: '১',
-      title: i18n.modules.hire.title,
-      subtitle: i18n.modules.hire.subtitle,
-      badge: i18n.modules.hire.badge,
-      description: i18n.modules.hire.description,
+      number: formatNumber(1),
+      title: t.modules.hire.title,
+      subtitle: t.modules.hire.subtitle,
+      badge: t.modules.hire.badge,
+      description: t.modules.hire.description,
       icon: Wrench,
       accent: 'orange',
       iconBg: 'bg-orange-100 text-orange-600',
     },
     {
       id: 'work' as ModuleId,
-      number: '২',
-      title: i18n.modules.work.title,
-      subtitle: i18n.modules.work.subtitle,
-      badge: i18n.modules.work.badge,
-      description: i18n.modules.work.description,
+      number: formatNumber(2),
+      title: t.modules.work.title,
+      subtitle: t.modules.work.subtitle,
+      badge: t.modules.work.badge,
+      description: t.modules.work.description,
       icon: HardHat,
       accent: 'green',
       iconBg: 'bg-green-100 text-green-600',
     },
     {
       id: 'jobs' as ModuleId,
-      number: '৩',
-      title: i18n.modules.jobs.title,
-      subtitle: i18n.modules.jobs.subtitle,
-      badge: i18n.modules.jobs.badge,
-      description: i18n.modules.jobs.description,
+      number: formatNumber(3),
+      title: t.modules.jobs.title,
+      subtitle: t.modules.jobs.subtitle,
+      badge: t.modules.jobs.badge,
+      description: t.modules.jobs.description,
       icon: Briefcase,
       accent: 'purple',
       iconBg: 'bg-purple-100 text-purple-600',
     },
     {
       id: 'ride' as ModuleId,
-      number: '৪',
-      title: i18n.modules.ride.title,
-      subtitle: i18n.modules.ride.subtitle,
-      badge: i18n.modules.ride.badge,
-      description: i18n.modules.ride.description,
+      number: formatNumber(4),
+      title: t.modules.ride.title,
+      subtitle: t.modules.ride.subtitle,
+      badge: t.modules.ride.badge,
+      description: t.modules.ride.description,
       icon: Car,
       accent: 'blue',
       iconBg: 'bg-blue-100 text-blue-600',
     },
     {
       id: 'delivery' as ModuleId,
-      number: '৫',
-      title: i18n.modules.delivery.title,
-      subtitle: i18n.modules.delivery.subtitle,
-      badge: i18n.modules.delivery.badge,
-      description: i18n.modules.delivery.description,
+      number: formatNumber(5),
+      title: t.modules.delivery.title,
+      subtitle: t.modules.delivery.subtitle,
+      badge: t.modules.delivery.badge,
+      description: t.modules.delivery.description,
       icon: PackageCheck,
       accent: 'red',
       iconBg: 'bg-red-100 text-red-600',
     },
     {
       id: 'buysell' as ModuleId,
-      number: '৬',
-      title: i18n.modules.buysell.title,
-      subtitle: i18n.modules.buysell.subtitle,
-      badge: i18n.modules.buysell.badge,
-      description: i18n.modules.buysell.description,
+      number: formatNumber(6),
+      title: t.modules.buysell.title,
+      subtitle: t.modules.buysell.subtitle,
+      badge: t.modules.buysell.badge,
+      description: t.modules.buysell.description,
       icon: ShoppingBag,
       accent: 'emerald',
       iconBg: 'bg-emerald-100 text-emerald-600',
@@ -105,7 +107,7 @@ export const ServiceCards: React.FC<ServiceCardsProps> = ({ onSelectModule }) =>
                 </div>
               </div>
 
-              {/* Title & Bengali Subtitle */}
+              {/* Title & Subtitle */}
               <div>
                 <h3 className="font-bold text-slate-800 text-lg group-hover:text-blue-600 transition">
                   {card.title}
@@ -125,7 +127,7 @@ export const ServiceCards: React.FC<ServiceCardsProps> = ({ onSelectModule }) =>
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-semibold group-hover:text-blue-600 transition">
               <span>{card.badge}</span>
               <span className="group-hover:translate-x-1 transition-transform text-blue-600 font-bold">
-                এগিয়ে যান →
+                {t.home.stepForward} →
               </span>
             </div>
           </button>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Home, Search, MessageSquare, Clock, User } from 'lucide-react';
-import { i18n } from '../../lib/i18n';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface BottomNavProps {
   currentView: string;
@@ -8,12 +8,14 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate }) => {
+  const { t } = useLanguage();
+
   const navItems = [
-    { id: 'home', label: i18n.nav.home, icon: Home },
-    { id: 'search', label: i18n.nav.search, icon: Search },
-    { id: 'messages', label: i18n.nav.messages, icon: MessageSquare },
-    { id: 'activity', label: i18n.nav.activity, icon: Clock },
-    { id: 'profile', label: i18n.nav.profile, icon: User },
+    { id: 'home', label: t.nav.home, icon: Home },
+    { id: 'search', label: t.nav.search, icon: Search },
+    { id: 'messages', label: t.nav.messages, icon: MessageSquare },
+    { id: 'activity', label: t.nav.activity, icon: Clock },
+    { id: 'profile', label: t.nav.profile, icon: User },
   ];
 
   return (

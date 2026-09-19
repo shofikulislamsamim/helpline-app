@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { MapPin, Navigation, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { MapPin, Navigation, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const LocationPermissionCard: React.FC = () => {
   const { userProfile, updateLiveLocation } = useAuth();
+  const { isBn, formatNumber } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
-      setMsg('আপনার ব্রাউজার বা ডিভাইসে জিপিএস লোকেশন সমর্থিত নয়।');
+      setMsg(isBn ? 'আপনার ব্রাউজার বা ডিভাইসে জিপিএস লোকেশন সমর্থিত নয়।' : 'GPS location is not supported on your browser or device.');
       return;
     }
 
@@ -21,14 +23,14 @@ export const LocationPermissionCard: React.FC = () => {
         const { latitude, longitude, accuracy } = pos.coords;
         await updateLiveLocation({ latitude, longitude, accuracy });
         setLoading(false);
-        setMsg('আপনার লাইভ অবস্থান সফলভাবে আপডেট করা হয়েছে।');
+        setMsg(isBn ? 'আপনার লাইভ অবস্থান সফলভাবে আপডেট করা হয়েছে।' : 'Your live location has been updated successfully.');
       },
       (err) => {
         setLoading(false);
         if (err.code === err.PERMISSION_DENIED) {
-          setMsg('লোকেশন পারমিশন প্রত্যাখ্যান করা হয়েছে। ব্রাউজার সেটিং থেকে অনুমতি দিন।');
+          setMsg(isBn ? 'লোকেশন পারমিশন প্রত্যাখ্যান করা হয়েছে। ব্রাউজার সেটিং থেকে অনুমতি দিন।' : 'Location permission was denied. Please allow it in browser settings.');
         } else {
-          setMsg('অবস্থান শনাক্ত করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+          setMsg(isBn ? 'অবস্থান শনাক্ত করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Failed to detect location. Please try again.');
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -46,11 +48,13 @@ export const LocationPermissionCard: React.FC = () => {
               <Navigation className="w-4 h-4" />
             </div>
             <h4 className="font-bold text-xs sm:text-sm text-slate-900">
-              রিয়েল-টাইম লাইভ লোকেশন (Live GPS Location)
+              {isBn ? 'রিয়েল-টাইম লাইভ লোকেশন (Live GPS Location)' : 'Real-Time Live GPS Location'}
             </h4>
           </div>
           <p className="text-[11px] sm:text-xs text-slate-500">
-            নিকটবর্তী গ্রাহক বা টেকনিশিয়ানদের সাথে দ্রুত সংযোগে সহায়তা করে।
+            {isBn 
+              ? 'নিকটবর্তী গ্রাহক বা টেকনিশিয়ানদের সাথে দ্রুত সংযোগে সহায়তা করে।' 
+              : 'Helps connect faster with nearby customers or workers.'}
           </p>
         </div>
 
@@ -61,7 +65,11 @@ export const LocationPermissionCard: React.FC = () => {
           className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
         >
           <MapPin className="w-3.5 h-3.5" />
-          <span>{loading ? 'শনাক্ত হচ্ছে...' : '📍 আমার বর্তমান অবস্থান ব্যবহার করুন'}</span>
+          <span>
+            {loading 
+              ? (isBn ? 'শনাক্ত হচ্ছে...' : 'Detecting...') 
+              : (isBn ? '📍 আমার বর্তমান অবস্থান ব্যবহার করুন' : '📍 Use My Current Location')}
+          </span>
         </button>
       </div>
 
@@ -79,16 +87,19 @@ export const LocationPermissionCard: React.FC = () => {
           <span>
             {hasLocation ? (
               <span>
-                অবস্থান সংরক্ষিত: <strong className="text-slate-800">{userProfile.currentLocation?.latitude?.toFixed(4)}, {userProfile.currentLocation?.longitude?.toFixed(4)}</strong>
+                {isBn ? 'অবস্থান সংরক্ষিত: ' : 'Saved Location: '}
+                <strong className="text-slate-800">
+                  {formatNumber(userProfile.currentLocation?.latitude?.toFixed(4) || '')}, {formatNumber(userProfile.currentLocation?.longitude?.toFixed(4) || '')}
+                </strong>
               </span>
             ) : (
-              <span>কোনো লাইভ অবস্থান এখনও সংরক্ষিত হয়নি</span>
+              <span>{isBn ? 'কোনো লাইভ অবস্থান এখনও সংরক্ষিত হয়নি' : 'No live location saved yet'}</span>
             )}
           </span>
         </div>
 
         <span className="text-[11px] text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-          বর্তমান ঠিকানা ও লাইভ অবস্থান সম্পূর্ণ পৃথক
+          {isBn ? 'বর্তমান ঠিকানা ও লাইভ অবস্থান সম্পূর্ণ পৃথক' : 'Present address & live location are kept separate'}
         </span>
       </div>
 
@@ -96,7 +107,10 @@ export const LocationPermissionCard: React.FC = () => {
       <div className="p-2.5 bg-amber-50/70 border border-amber-200/60 rounded-xl text-[11px] text-amber-900 flex items-start gap-2">
         <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
         <p>
-          <strong>গোপনীয়তা সুরক্ষা:</strong> আপনি অফলাইনে থাকলে বা অনুমতি না দিলে কোনো সাধারণ ব্যবহারকারীকে আপনার অবস্থান প্রকাশ করা হয় না।
+          <strong>{isBn ? 'গোপনীয়তা সুরক্ষা: ' : 'Privacy Protection: '}</strong>
+          {isBn 
+            ? 'আপনি অফলাইনে থাকলে বা অনুমতি না দিলে কোনো সাধারণ ব্যবহারকারীকে আপনার অবস্থান প্রকাশ করা হয় না।' 
+            : 'Your location is never broadcast to users when you are offline or without your explicit permission.'}
         </p>
       </div>
     </div>

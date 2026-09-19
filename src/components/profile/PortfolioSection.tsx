@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Image as ImageIcon, Plus, Trash2, Calendar, Briefcase, ExternalLink, X, Check } from 'lucide-react';
+import { Image as ImageIcon, Plus, Trash2, Calendar, ExternalLink, X } from 'lucide-react';
 import { PortfolioItem } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface PortfolioSectionProps {
   portfolio: PortfolioItem[];
@@ -11,35 +12,43 @@ interface PortfolioSectionProps {
 
 const PRESET_SAMPLE_IMAGES = [
   {
-    label: 'ইলেকট্রিক ওয়্যারিং',
+    labelBn: 'ইলেকট্রিক ওয়্যারিং',
+    labelEn: 'Electric Wiring',
     url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=80',
   },
   {
-    label: 'এসি মেরামত ও গ্যাস রিফিল',
+    labelBn: 'এসি মেরামত ও গ্যাস রিফিল',
+    labelEn: 'AC Repair & Gas Refill',
     url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80',
   },
   {
-    label: 'প্লাম্বিং ও পাইপ ফিটিং',
+    labelBn: 'প্লাম্বিং ও পাইপ ফিটিং',
+    labelEn: 'Plumbing & Pipe Fitting',
     url: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&auto=format&fit=crop&q=80',
   },
   {
-    label: 'রং মিস্ত্রি ও পেইন্টিং',
+    labelBn: 'রং মিস্ত্রি ও পেইন্টিং',
+    labelEn: 'Painting & Polishing',
     url: 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&auto=format&fit=crop&q=80',
   },
   {
-    label: 'কাঠমিস্ত্রি ও ফার্নিচার',
+    labelBn: 'কাঠমিস্ত্রি ও ফার্নিচার',
+    labelEn: 'Carpentry & Furniture',
     url: 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=800&auto=format&fit=crop&q=80',
   },
   {
-    label: 'ডিপ ক্লিনিং ও পরিষ্কার',
+    labelBn: 'ডিপ ক্লিনিং ও পরিষ্কার',
+    labelEn: 'Deep Cleaning',
     url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop&q=80',
   },
   {
-    label: 'কম্পিউটার ও আইটি মেরামত',
+    labelBn: 'কম্পিউটার ও আইটি মেরামত',
+    labelEn: 'Computer & IT Repair',
     url: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=800&auto=format&fit=crop&q=80',
   },
   {
-    label: 'টেইলারিং ও সেলাই',
+    labelBn: 'টেইলারিং ও সেলাই',
+    labelEn: 'Tailoring & Stitching',
     url: 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?w=800&auto=format&fit=crop&q=80',
   },
 ];
@@ -50,6 +59,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
   onChange,
   readOnly = false,
 }) => {
+  const { isBn } = useLanguage();
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -69,8 +79,8 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
       title: title.trim(),
       description: description.trim() || undefined,
       imageUrl: finalImage,
-      profession: profession || userProfessions[0] || 'সাধারণ কাজ',
-      completedAt: completedAt.trim() || '২০২৪',
+      profession: profession || userProfessions[0] || (isBn ? 'সাধারণ কাজ' : 'General Work'),
+      completedAt: completedAt.trim() || '2024',
     };
 
     onChange([...portfolio, newItem]);
@@ -93,10 +103,12 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
         <div>
           <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-purple-600" />
-            <span>১২. পোর্টফোলিও ও সম্পন্ন কাজের নমুনা (Portfolio & Sample Works)</span>
+            <span>{isBn ? '১২. পোর্টফোলিও ও সম্পন্ন কাজের নমুনা (Portfolio & Sample Works)' : '12. Portfolio & Sample Works'}</span>
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            পূর্বে সম্পন্ন কাজের ছবি ও বিবরণ যুক্ত করুন যাতে গ্রাহকরা আপনার কাজের মান দেখে আস্থা পান।
+            {isBn 
+              ? 'পূর্বে সম্পন্ন কাজের ছবি ও বিবরণ যুক্ত করুন যাতে গ্রাহকরা আপনার কাজের মান দেখে আস্থা পান।' 
+              : 'Add photos and descriptions of past work so clients can evaluate your quality and gain trust.'}
           </p>
         </div>
 
@@ -107,7 +119,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
             className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>নমুনা কাজ যোগ করুন</span>
+            <span>{isBn ? 'নমুনা কাজ যোগ করুন' : 'Add Work Sample'}</span>
           </button>
         )}
       </div>
@@ -118,7 +130,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
           <div className="flex items-center justify-between border-b border-slate-200 pb-2">
             <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
               <Plus className="w-4 h-4 text-purple-600" />
-              <span>নতুন কাজের নমুনা যুক্ত করুন</span>
+              <span>{isBn ? 'নতুন কাজের নমুনা যুক্ত করুন' : 'Add New Work Sample'}</span>
             </h4>
             <button
               type="button"
@@ -132,21 +144,21 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                কাজের শিরোনাম / প্রোজেক্টের নাম *
+                {isBn ? 'কাজের শিরোনাম / প্রোজেক্টের নাম *' : 'Work Title / Project Name *'}
               </label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="উদা: মিরপুর ডিওএইচএস ৪-রুম ওয়্যারিং"
+                placeholder={isBn ? 'উদা: মিরপুর ডিওএইচএস ৪-রুম ওয়্যারিং' : 'e.g. Mirpur DOHS 4-room wiring'}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                সংশ্লিষ্ট পেশা
+                {isBn ? 'সংশ্লিষ্ট পেশা' : 'Related Profession'}
               </label>
               <select
                 value={profession}
@@ -160,14 +172,14 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                     </option>
                   ))
                 ) : (
-                  <option value="সাধারণ কাজ">সাধারণ কাজ</option>
+                  <option value={isBn ? 'সাধারণ কাজ' : 'General Work'}>{isBn ? 'সাধারণ কাজ' : 'General Work'}</option>
                 )}
               </select>
             </div>
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                কাজের ছবির লিংক (Image URL) অথবা নিচে থেকে প্রি-সেট সিলেক্ট করুন
+                {isBn ? 'কাজের ছবির লিংক (Image URL) অথবা নিচে থেকে প্রি-সেট সিলেক্ট করুন' : 'Image URL or select a preset below'}
               </label>
               <input
                 type="url"
@@ -179,7 +191,9 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
 
               {/* Presets */}
               <div className="mt-2">
-                <span className="text-[11px] text-slate-500 block mb-1.5">দ্রুত স্যাম্পল ছবি নির্বাচন:</span>
+                <span className="text-[11px] text-slate-500 block mb-1.5">
+                  {isBn ? 'দ্রুত স্যাম্পল ছবি নির্বাচন:' : 'Quick Sample Selection:'}
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {PRESET_SAMPLE_IMAGES.map((preset, idx) => (
                     <button
@@ -192,7 +206,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      {preset.label}
+                      {isBn ? preset.labelBn : preset.labelEn}
                     </button>
                   ))}
                 </div>
@@ -201,26 +215,26 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                সম্পন্ন করার তারিখ / বছর
+                {isBn ? 'সম্পন্ন করার তারিখ / বছর' : 'Completion Date / Year'}
               </label>
               <input
                 type="text"
                 value={completedAt}
                 onChange={(e) => setCompletedAt(e.target.value)}
-                placeholder="উদা: ২০২৪ বা জানুয়ারি ২০২৪"
+                placeholder={isBn ? 'উদা: ২০২৪ বা জানুয়ারি ২০২৪' : 'e.g. 2024 or Jan 2024'}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                কাজের সংক্ষিপ্ত বিবরণ
+                {isBn ? 'কাজের সংক্ষিপ্ত বিবরণ' : 'Short Description of Work'}
               </label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="উদা: সম্পূর্ণ কনসিল্ড ওয়্যারিং ও ডিস্ট্রিবিউশন বোর্ড"
+                placeholder={isBn ? 'উদা: সম্পূর্ণ কনসিল্ড ওয়্যারিং ও ডিস্ট্রিবিউশন বোর্ড' : 'e.g. Full concealed wiring & distribution board'}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
               />
             </div>
@@ -232,13 +246,13 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
               onClick={() => setIsAdding(false)}
               className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
             >
-              বাতিল
+              {isBn ? 'বাতিল' : 'Cancel'}
             </button>
             <button
               type="submit"
               className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
             >
-              পোর্টফোলিওতে সংরক্ষণ করুন
+              {isBn ? 'পোর্টফোলিওতে সংরক্ষণ করুন' : 'Save to Portfolio'}
             </button>
           </div>
         </form>
@@ -273,7 +287,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                 )}
                 <span className="absolute bottom-2 right-2 p-1 rounded-md bg-black/40 text-white text-[10px] flex items-center gap-1">
                   <ExternalLink className="w-3 h-3" />
-                  <span>বড় দেখুন</span>
+                  <span>{isBn ? 'বড় দেখুন' : 'Enlarge'}</span>
                 </span>
               </div>
 
@@ -292,7 +306,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-400">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
-                    <span>{item.completedAt || 'সম্পন্ন'}</span>
+                    <span>{item.completedAt || (isBn ? 'সম্পন্ন' : 'Completed')}</span>
                   </span>
 
                   {!readOnly && (
@@ -300,7 +314,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
                       type="button"
                       onClick={() => handleRemove(item.id)}
                       className="text-rose-500 hover:text-rose-700 p-1 rounded-md hover:bg-rose-50 cursor-pointer transition"
-                      title="মুছে ফেলুন"
+                      title={isBn ? 'মুছে ফেলুন' : 'Remove'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -315,9 +329,13 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
           <div className="w-10 h-10 mx-auto rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
             <ImageIcon className="w-5 h-5" />
           </div>
-          <p className="text-xs font-semibold text-slate-700">এখনও কোনো পোর্টফোলিও বা কাজের ছবি যুক্ত করা হয়নি</p>
+          <p className="text-xs font-semibold text-slate-700">
+            {isBn ? 'এখনও কোনো পোর্টফোলিও বা কাজের ছবি যুক্ত করা হয়নি' : 'No portfolio or sample work photos added yet'}
+          </p>
           <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-            আপনার আগের কাজের ছবি আপলোড করলে গ্রাহকরা আপনার কাজের দক্ষতার ওপর দ্রুত বিশ্বাস অর্জন করবে।
+            {isBn 
+              ? 'আপনার আগের কাজের ছবি আপলোড করলে গ্রাহকরা আপনার কাজের দক্ষতার ওপর দ্রুত বিশ্বাস অর্জন করবে।' 
+              : 'Uploading photos of your past work helps clients quickly trust your skill and quality.'}
           </p>
           {!readOnly && (
             <button
@@ -325,7 +343,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
               onClick={() => setIsAdding(true)}
               className="mt-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold cursor-pointer transition shadow-2xs"
             >
-              + প্রথম নমুনা ছবি যোগ করুন
+              {isBn ? '+ প্রথম নমুনা ছবি যোগ করুন' : '+ Add First Sample Photo'}
             </button>
           )}
         </div>
@@ -359,7 +377,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
             <div className="p-5 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
-                  {selectedPreviewImage.profession || 'কাজের নমুনা'}
+                  {selectedPreviewImage.profession || (isBn ? 'কাজের নমুনা' : 'Work Sample')}
                 </span>
                 <span className="text-xs text-slate-400">
                   {selectedPreviewImage.completedAt}

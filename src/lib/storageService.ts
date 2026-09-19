@@ -11,6 +11,7 @@ export const MAX_PROFILE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 export interface FileValidationResult {
   isValid: boolean;
   errorMessageBn?: string;
+  errorMessageEn?: string;
 }
 
 /**
@@ -18,7 +19,11 @@ export interface FileValidationResult {
  */
 export function validateProfileImage(file: File): FileValidationResult {
   if (!file) {
-    return { isValid: false, errorMessageBn: 'কোনো ফাইল নির্বাচন করা হয়নি।' };
+    return { 
+      isValid: false, 
+      errorMessageBn: 'কোনো ফাইল নির্বাচন করা হয়নি।',
+      errorMessageEn: 'No file selected.'
+    };
   }
 
   // Check file type
@@ -26,6 +31,7 @@ export function validateProfileImage(file: File): FileValidationResult {
     return {
       isValid: false,
       errorMessageBn: 'শুধুমাত্র JPG, JPEG, PNG অথবা WebP ফরম্যাটের ছবি আপলোড করা যাবে।',
+      errorMessageEn: 'Only JPG, JPEG, PNG or WebP images are allowed.',
     };
   }
 
@@ -35,6 +41,7 @@ export function validateProfileImage(file: File): FileValidationResult {
     return {
       isValid: false,
       errorMessageBn: `ছবির সাইজ (${sizeMb} MB) অনেক বড়। সর্বোচ্চ ৫ MB সাইজের ছবি নির্বাচন করুন।`,
+      errorMessageEn: `Image size (${sizeMb} MB) is too large. Maximum allowed size is 5 MB.`,
     };
   }
 

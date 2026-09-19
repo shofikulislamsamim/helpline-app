@@ -2,7 +2,9 @@ import React from 'react';
 import { PhoneCall, ShieldCheck, MapPin, UserCheck, ShieldAlert, LogIn, LogOut, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppSettings } from '../../context/AppSettingsContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { StatusToggle } from '../common/StatusToggle';
+import { LanguageSelector } from '../common/LanguageSelector';
 import { NotificationDropdown } from './NotificationDropdown';
 
 interface NavbarProps {
@@ -13,6 +15,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   const { currentUser, userProfile, isAdmin, setIsAdmin, openAuthModal, logout } = useAuth();
   const { settings } = useAppSettings();
+  const { t, isBn, formatNumber } = useLanguage();
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
@@ -22,7 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
           <div className="flex items-center gap-2 overflow-hidden truncate">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
             <span className="truncate">
-              HelpLine অল-ইন-ওয়ান লোকাল মার্কেটপ্লেস (বাংলাদেশ)
+              {isBn ? 'HelpLine অল-ইন-ওয়ান লোকাল মার্কেটপ্লেস (বাংলাদেশ)' : "HelpLine All-in-One Local Marketplace (Bangladesh)"}
             </span>
           </div>
           <div className="flex items-center gap-3 shrink-0 text-slate-300">
@@ -31,13 +34,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-medium"
             >
               <PhoneCall className="w-3 h-3" />
-              <span>হটলাইন: {settings.hotlineNumber}</span>
+              <span>{isBn ? 'হটলাইন' : 'Hotline'}: {formatNumber(settings.hotlineNumber)}</span>
             </a>
             <button
               onClick={() => onNavigate('policies')}
               className="hover:text-white transition hidden sm:inline"
             >
-              নিরাপত্তা নীতি
+              {isBn ? 'নিরাপত্তা নীতি' : 'Safety Policy'}
             </button>
           </div>
         </div>
@@ -58,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             <div>
               <div className="flex items-center gap-1.5 leading-tight">
                 <span className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">
-                  HelpLine <span className="text-blue-600 font-normal">হেল্পলাইন</span>
+                  HelpLine {isBn && <span className="text-blue-600 font-normal">হেল্পলাইন</span>}
                 </span>
                 <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
                   BD
@@ -75,10 +78,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             id="nav-location-selector"
             onClick={() => onNavigate('profile')}
             className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-700 transition cursor-pointer"
-            title="বর্তমান ঠিকানা পরিবর্তন করতে প্রোফাইলে যান"
+            title={isBn ? 'বর্তমান ঠিকানা পরিবর্তন করতে প্রোফাইলে যান' : 'Go to Profile to change current address'}
           >
             <MapPin className="w-3.5 h-3.5 text-blue-600" />
-            <span className="truncate max-w-[140px]">{userProfile.presentAddress?.division || 'ঢাকা'} ({userProfile.presentAddress?.district || 'ঢাকা'})</span>
+            <span className="truncate max-w-[140px]">
+              {userProfile.presentAddress?.division || (isBn ? 'ঢাকা' : 'Dhaka')} ({userProfile.presentAddress?.district || (isBn ? 'ঢাকা' : 'Dhaka')})
+            </span>
           </button>
         </div>
 
@@ -92,21 +97,24 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               type="text"
               onClick={() => onNavigate('search')}
               readOnly
-              placeholder="সার্চ করুন (Search HelpLine...)"
+              placeholder={t.home.searchPlaceholder}
               className="w-full bg-slate-100 hover:bg-slate-200/70 border-none rounded-full py-1.5 pl-9 pr-4 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition"
             />
           </div>
         </div>
 
-        {/* Right controls: Online/Offline indicator, Admin button, User profile */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Right controls: Language Selector, Online/Offline indicator, Admin button, User profile */}
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          {/* Language Switcher Button in Header */}
+          <LanguageSelector variant="compact" />
+
           {/* Online/Offline Quick Status Indicator */}
           <div className="hidden sm:block text-right">
             <p className="text-xs font-semibold text-slate-700 truncate max-w-[120px]">
-              {userProfile.fullName || 'মোঃ আব্দুর রহমান'}
+              {userProfile.fullName || (isBn ? 'মোঃ আব্দুর রহমান' : 'Md. Abdur Rahman')}
             </p>
             <p className={`text-[11px] font-bold ${userProfile.isOnline ? 'text-green-600' : 'text-slate-400'}`}>
-              ● {userProfile.isOnline ? 'Online (অ্যাক্টিভ)' : 'Offline'}
+              ● {userProfile.isOnline ? (isBn ? 'Online (অ্যাক্টিভ)' : 'Online (Active)') : (isBn ? 'Offline (নিষ্ক্রিয়)' : 'Offline')}
             </p>
           </div>
 
@@ -140,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 id="btn-nav-profile"
                 onClick={() => onNavigate('profile')}
                 className="flex items-center gap-2 p-0.5 rounded-full hover:ring-2 hover:ring-blue-500 transition cursor-pointer"
-                title="প্রোফাইল দেখুন"
+                title={t.nav.profile}
               >
                 {userProfile.avatarUrl ? (
                   <img
@@ -156,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               </button>
               <button
                 onClick={logout}
-                title="লগআউট"
+                title={t.common.logout}
                 className="p-1.5 text-slate-400 hover:text-slate-700 transition"
               >
                 <LogOut className="w-4 h-4" />
@@ -170,14 +178,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span>লগইন</span>
+                <span>{t.common.login}</span>
               </button>
               <button
                 id="btn-nav-register"
                 onClick={() => openAuthModal('register')}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition cursor-pointer"
               >
-                <span>নিবন্ধন</span>
+                <span>{t.common.register}</span>
               </button>
             </div>
           )}

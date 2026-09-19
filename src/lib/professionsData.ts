@@ -3,7 +3,9 @@ import { CapabilityType, ServiceDeliveryType } from '../types';
 export interface ServiceTypeOption {
   id: ServiceDeliveryType;
   titleBn: string;
+  titleEn?: string;
   subtitleBn: string;
+  subtitleEn?: string;
   icon: string;
 }
 
@@ -11,37 +13,49 @@ export const SERVICE_TYPES_LIST: ServiceTypeOption[] = [
   {
     id: 'on_demand',
     titleBn: 'জরুরি / অন-ডিমান্ড সেবা',
+    titleEn: 'Emergency / On-Demand Service',
     subtitleBn: 'জরুরি প্রয়োজনে তাৎক্ষণিক পৌঁছানো ও সমাধান',
+    subtitleEn: 'Instant arrival and prompt resolution for urgent needs',
     icon: '⚡',
   },
   {
     id: 'daily',
     titleBn: 'দৈনিক মজুরিভিত্তিক (Daily Basis)',
+    titleEn: 'Daily Basis (Day Wage)',
     subtitleBn: 'সারাদিনের কাজের জন্য দৈনিক চুক্তিতে',
+    subtitleEn: 'Daily contract for full-day work tasks',
     icon: '📅',
   },
   {
     id: 'contractual',
     titleBn: 'চুক্তিভিত্তিক / প্রজেক্ট (Contractual)',
+    titleEn: 'Contractual / Project-Based',
     subtitleBn: 'নির্দিষ্ট কাজের আকার ও পরিমাণের ওপর ভিত্তি করে',
+    subtitleEn: 'Based on defined scope and volume of the project',
     icon: '📝',
   },
   {
     id: 'full_time',
     titleBn: 'ফুল-টাইম (Full Time)',
+    titleEn: 'Full-Time Employment',
     subtitleBn: 'নিয়মিত মাসিক বা দীর্ঘমেয়াদী পূর্ণকালীন নিয়োগ',
+    subtitleEn: 'Regular monthly or long-term full-time engagement',
     icon: '💼',
   },
   {
     id: 'part_time',
     titleBn: 'পার্ট-টাইম (Part Time)',
+    titleEn: 'Part-Time Work',
     subtitleBn: 'দৈনিক নির্দিষ্ট কয়েক ঘণ্টা বা ছুটির দিনে',
+    subtitleEn: 'Specific hours per day or weekend shifts',
     icon: '⏱️',
   },
   {
     id: 'remote',
     titleBn: 'দূরবর্তী / হোম ভিজিট (Remote / Home Visit)',
+    titleEn: 'Remote / Home Visit',
     subtitleBn: 'গ্রাহকের ঠিকানায় সরাসরি পরিদর্শন বা অনলাইন কনসাল্টেশন',
+    subtitleEn: 'On-site visit at customer address or online consultation',
     icon: '🏠',
   },
 ];
@@ -53,6 +67,7 @@ export interface ProfessionDef {
   categoryMode: 'physical' | 'digital';
   icon: string;
   descriptionBn: string;
+  descriptionEn?: string;
   defaultSkills: string[];
   suggestedKeywords?: string[];
 }
@@ -60,9 +75,12 @@ export interface ProfessionDef {
 export interface CapabilityDef {
   id: CapabilityType;
   titleBn: string;
+  titleEn?: string;
   subtitleBn: string;
+  subtitleEn?: string;
   icon: string;
   badgeBn: string;
+  badgeEn?: string;
   isWorkerType?: boolean;
 }
 
@@ -70,75 +88,105 @@ export const CAPABILITIES_LIST: CapabilityDef[] = [
   {
     id: 'worker',
     titleBn: 'কাজ করতে চাই',
+    titleEn: 'I Want to Work',
     subtitleBn: 'দক্ষ টেকনিশিয়ান বা মিস্ত্রি হিসেবে আয় করুন',
+    subtitleEn: 'Earn as a skilled technician or professional worker',
     icon: '🛠️',
     badgeBn: 'Worker',
+    badgeEn: 'Worker',
     isWorkerType: true,
   },
   {
     id: 'customer',
     titleBn: 'কাজের মানুষ খুঁজতে চাই',
+    titleEn: 'I Want to Hire',
     subtitleBn: 'বাসা বা অফিসের যে কোনো কাজের দক্ষ লোক নিয়োগ করুন',
+    subtitleEn: 'Hire skilled workers for home, office or projects',
     icon: '👤',
     badgeBn: 'Hirer / Customer',
+    badgeEn: 'Customer',
   },
   {
     id: 'job_seeker',
     titleBn: 'চাকরি খুঁজতে চাই',
+    titleEn: 'Looking for a Job',
     subtitleBn: 'ফুল-টাইম, পার্ট-টাইম বা চুক্তিভিত্তিক চাকরির সুযোগ',
+    subtitleEn: 'Find full-time, part-time or contractual job openings',
     icon: '💼',
     badgeBn: 'Job Seeker',
+    badgeEn: 'Job Seeker',
   },
   {
     id: 'employer',
     titleBn: 'চাকরি দিতে চাই',
+    titleEn: 'Looking to Hire Staff',
     subtitleBn: 'আপনার প্রতিষ্ঠান বা ব্যবসার জন্য কর্মী নিয়োগ করুন',
+    subtitleEn: 'Recruit employees for your business or establishment',
     icon: '🏢',
     badgeBn: 'Employer',
+    badgeEn: 'Employer',
   },
   {
     id: 'passenger',
     titleBn: 'রাইড নিতে চাই',
+    titleEn: 'Need a Ride',
     subtitleBn: 'সহজে গন্তব্যে পৌঁছানোর জন্য বাইক বা কার রাইড বুক করুন',
+    subtitleEn: 'Book bike, CNG or car rides to travel comfortably',
     icon: '🚗',
     badgeBn: 'Passenger',
+    badgeEn: 'Passenger',
   },
   {
     id: 'driver',
     titleBn: 'রাইড দিতে চাই',
+    titleEn: 'Offer a Ride',
     subtitleBn: 'বাইক, সিএনজি বা কার দিয়ে যাত্রী পরিবহন করুন',
+    subtitleEn: 'Transport passengers using bike, CNG or car',
     icon: '🚕',
     badgeBn: 'Driver',
+    badgeEn: 'Driver',
     isWorkerType: true,
   },
   {
     id: 'delivery_customer',
     titleBn: 'কিছু পাঠাতে চাই',
+    titleEn: 'Send a Parcel',
     subtitleBn: 'শহরের মধ্যে পার্সেল বা ডকুমেন্ট দ্রুত ও নিরাপদে পাঠান',
+    subtitleEn: 'Send packages and urgent documents securely',
     icon: '📦',
     badgeBn: 'Delivery Customer',
+    badgeEn: 'Delivery Customer',
   },
   {
     id: 'delivery_rider',
     titleBn: 'ডেলিভারি করতে চাই',
+    titleEn: 'Delivery Rider',
     subtitleBn: 'পার্সেল, খাবার বা প্রয়োজনীয় পণ্য ডেলিভারি করুন',
+    subtitleEn: 'Deliver parcels, food items and goods locally',
     icon: '🛵',
     badgeBn: 'Rider',
+    badgeEn: 'Rider',
     isWorkerType: true,
   },
   {
     id: 'buyer',
     titleBn: 'পণ্য কিনতে চাই',
+    titleEn: 'Buy Products',
     subtitleBn: 'লোকাল মার্কেটপ্লেস থেকে সাশ্রয়ী মূল্যে পণ্য কিনুন',
+    subtitleEn: 'Purchase essentials and products locally at great prices',
     icon: '🛒',
     badgeBn: 'Buyer',
+    badgeEn: 'Buyer',
   },
   {
     id: 'seller',
     titleBn: 'পণ্য বিক্রি করতে চাই',
+    titleEn: 'Sell Products',
     subtitleBn: 'নতুন বা ব্যবহৃত পণ্য স্থানীয় ক্রেতাদের কাছে বিক্রি করুন',
+    subtitleEn: 'Sell new or pre-owned goods directly to local buyers',
     icon: '🏪',
     badgeBn: 'Seller',
+    badgeEn: 'Seller',
   },
 ];
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { useHire } from '../../context/HireContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { getWorkerDistanceResult, CustomerLocationQuery } from '../../lib/geoDistance';
 import { isWorkerInServiceType, getSafeWorkerLocationDisplay } from '../../lib/hireSearchEngine';
 
@@ -33,6 +34,7 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
   onClose,
   onHireRequest,
 }) => {
+  const { t, isBn, formatNumber } = useLanguage();
   const { getWorkerStats, getWorkerReviews } = useHire();
   const [showCallDialog, setShowCallDialog] = useState(false);
 
@@ -40,7 +42,7 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
 
   const isOnline = worker.isOnline;
   const isVerified = worker.verificationStatus === 'verified' || worker.verificationStatus === 'approved';
-  const mainProf = worker.mainProfession || worker.professions?.[0] || 'দক্ষ কারিগর';
+  const mainProf = worker.mainProfession || worker.professions?.[0] || (isBn ? 'দক্ষ কারিগর' : 'Skilled Worker');
   const stats = getWorkerStats(worker.userId);
   const reviews = getWorkerReviews(worker.userId);
   const isDigital = isWorkerInServiceType(worker, 'digital');
@@ -85,11 +87,11 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
                 {isVerified ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>যাচাইকৃত কারিগর</span>
+                    <span>{isBn ? 'যাচাইকৃত কারিগর' : 'Verified Worker'}</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 text-xs font-semibold">
-                    <span>ভেরিফিকেশন অপেক্ষমান</span>
+                    <span>{isBn ? 'ভেরিফিকেশন অপেক্ষমান' : 'Verification Pending'}</span>
                   </span>
                 )}
               </div>
@@ -102,16 +104,20 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
               <div className="flex items-center justify-center sm:justify-start gap-4 mt-3 text-xs text-slate-300 flex-wrap">
                 <span className="flex items-center gap-1 font-bold text-amber-400">
                   <Star className="w-4 h-4 fill-amber-400" />
-                  <span>{stats.averageRating.toFixed(1)}</span>
-                  <span className="text-slate-400 font-normal">({stats.totalReviews} রিভিউ)</span>
+                  <span>{formatNumber(stats.averageRating.toFixed(1))}</span>
+                  <span className="text-slate-400 font-normal">({formatNumber(stats.totalReviews)} {isBn ? 'রিভিউ' : 'reviews'})</span>
                 </span>
                 <span>•</span>
                 <span>
-                  <strong>{stats.completedJobs}</strong>টি কাজ সম্পন্ন
+                  {isBn ? (
+                    <><strong>{formatNumber(stats.completedJobs)}</strong>টি কাজ সম্পন্ন</>
+                  ) : (
+                    <><strong>{formatNumber(stats.completedJobs)}</strong> jobs completed</>
+                  )}
                 </span>
                 <span>•</span>
                 <span className={isOnline ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
-                  {isOnline ? '🟢 Available Now' : '🔴 Currently Offline'}
+                  {isOnline ? (isBn ? '🟢 অনলাইনে আছেন' : '🟢 Available Now') : (isBn ? '🔴 অফলাইনে আছেন' : '🔴 Currently Offline')}
                 </span>
               </div>
             </div>
@@ -124,7 +130,7 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           {worker.bio && (
             <div>
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                পরিচিতি ও অভিজ্ঞতা
+                {isBn ? 'পরিচিতি ও অভিজ্ঞতা' : 'Bio & Experience'}
               </h4>
               <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100">
                 {worker.bio}
@@ -136,22 +142,22 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-center">
               <span className="text-lg sm:text-xl font-bold text-slate-900">
-                {stats.completedJobs}
+                {formatNumber(stats.completedJobs)}
               </span>
-              <p className="text-xs text-slate-500 mt-0.5">সম্পন্ন কাজ</p>
+              <p className="text-xs text-slate-500 mt-0.5">{isBn ? 'সম্পন্ন কাজ' : 'Completed Jobs'}</p>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-center">
               <span className="text-lg sm:text-xl font-bold text-amber-600 flex items-center justify-center gap-1">
                 <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                <span>{stats.averageRating.toFixed(1)}</span>
+                <span>{formatNumber(stats.averageRating.toFixed(1))}</span>
               </span>
-              <p className="text-xs text-slate-500 mt-0.5">গড় রেটিং</p>
+              <p className="text-xs text-slate-500 mt-0.5">{isBn ? 'গড় রেটিং' : 'Avg Rating'}</p>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-center">
               <span className="text-lg sm:text-xl font-bold text-emerald-600">
-                {stats.completionRate}%
+                {formatNumber(stats.completionRate)}%
               </span>
-              <p className="text-xs text-slate-500 mt-0.5">সফলতার হার</p>
+              <p className="text-xs text-slate-500 mt-0.5">{isBn ? 'সফলতার হার' : 'Success Rate'}</p>
             </div>
           </div>
 
@@ -159,7 +165,7 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           {worker.skills && worker.skills.length > 0 && (
             <div>
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-                দক্ষতা ও সার্ভিসসমূহ (Skills)
+                {isBn ? 'দক্ষতা ও সার্ভিসসমূহ (Skills)' : 'Skills & Services'}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {worker.skills.map((skill, idx) => (
@@ -178,18 +184,18 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           {worker.pricing && (
             <div>
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                রেট ও মজুরি বিবরণী (Pricing & Rates)
+                {isBn ? 'রেট ও মজুরি বিবরণী (Pricing & Rates)' : 'Pricing & Rate Card'}
               </h4>
               <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-xs space-y-1.5">
                 {worker.pricing.rateDescription && (
                   <p className="font-bold text-emerald-900 text-sm">{worker.pricing.rateDescription}</p>
                 )}
                 <div className="flex flex-wrap gap-4 text-emerald-800">
-                  {worker.pricing.hourlyRate && <span>⏱️ ঘণ্টা প্রতি: ৳{worker.pricing.hourlyRate}</span>}
-                  {worker.pricing.dailyRate && <span>📅 দৈনিক রেট: ৳{worker.pricing.dailyRate}</span>}
-                  {worker.pricing.visitFee && <span>🚗 প্রাথমিক ভিজিট ফি: ৳{worker.pricing.visitFee}</span>}
+                  {worker.pricing.hourlyRate && <span>⏱️ {isBn ? 'ঘণ্টা প্রতি: ৳' : 'Hourly: ৳'}{formatNumber(worker.pricing.hourlyRate)}</span>}
+                  {worker.pricing.dailyRate && <span>📅 {isBn ? 'দৈনিক রেট: ৳' : 'Daily: ৳'}{formatNumber(worker.pricing.dailyRate)}</span>}
+                  {worker.pricing.visitFee && <span>🚗 {isBn ? 'প্রাথমিক ভিজিট ফি: ৳' : 'Visit Fee: ৳'}{formatNumber(worker.pricing.visitFee)}</span>}
                   {worker.pricing.isNegotiable && (
-                    <span className="font-semibold text-emerald-700">✓ কাজের পরিধি অনুযায়ী আলোচনা সাপেক্ষ</span>
+                    <span className="font-semibold text-emerald-700">{isBn ? '✓ কাজের পরিধি অনুযায়ী আলোচনা সাপেক্ষ' : '✓ Negotiable based on job scope'}</span>
                   )}
                 </div>
               </div>
@@ -200,7 +206,7 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           {worker.portfolio && worker.portfolio.length > 0 && (
             <div>
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-                <span>পূর্ববর্তী কাজের পোর্টফোলিও ({worker.portfolio.length})</span>
+                <span>{isBn ? 'পূর্ববর্তী কাজের পোর্টফোলিও' : 'Work Portfolio'} ({formatNumber(worker.portfolio.length)})</span>
                 <span className="text-[11px] text-violet-700 font-bold">Portfolio Gallery</span>
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -230,20 +236,22 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           {/* Service Areas & Location Display */}
           <div>
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-              {isDigital ? 'সেবা প্রদান পদ্ধতি ও অবস্থান' : 'সার্ভিস এলাকা ও বর্তমান অবস্থান'}
+              {isDigital ? (isBn ? 'সেবা প্রদান পদ্ধতি ও অবস্থান' : 'Service Method & Location') : (isBn ? 'সার্ভিস এলাকা ও বর্তমান অবস্থান' : 'Service Areas & Current Location')}
             </h4>
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs text-slate-700">
               {isDigital ? (
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-violet-800 font-bold">
                     <span className="text-base">💻</span>
-                    <span>ডিজিটাল / ফ্রিল্যান্স সেবা (সারা বাংলাদেশ থেকে রিমোট অর্ডার প্রযোজ্য)</span>
+                    <span>{isBn ? 'ডিজিটাল / ফ্রিল্যান্স সেবা (সারা বাংলাদেশ থেকে রিমোট অর্ডার প্রযোজ্য)' : 'Digital / Freelance Service (Remote orders across Bangladesh)'}</span>
                   </div>
                   <p className="text-slate-600 text-[11px]">
-                    অনলাইনে চ্যাট ও ফাইল আদান-প্রদানের মাধ্যমে কাজ সম্পন্ন করা হবে। কোনো ফিজিক্যাল যাতায়াত বা দূরত্বের প্রয়োজন নেই।
+                    {isBn 
+                      ? 'অনলাইনে চ্যাট ও ফাইল আদান-প্রদানের মাধ্যমে কাজ সম্পন্ন করা হবে। কোনো ফিজিক্যাল যাতায়াত বা দূরত্বের প্রয়োজন নেই।' 
+                      : 'Delivered remotely via chat and file exchange. No physical transit required.'}
                   </p>
                   <p className="text-slate-500 text-[11px] pt-1 border-t border-slate-200/60">
-                    <strong>প্রফেশনালের এলাকা:</strong> {safeLocation}
+                    <strong>{isBn ? 'প্রফেশনালের এলাকা:' : 'Professional Area:'}</strong> {safeLocation}
                   </p>
                 </div>
               ) : (
@@ -251,12 +259,12 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-blue-600 shrink-0" />
                     <span>
-                      <strong>কর্মীর এলাকা:</strong> {safeLocation}
+                      <strong>{isBn ? 'কর্মীর এলাকা:' : 'Worker Area:'}</strong> {safeLocation}
                     </span>
                   </div>
                   {worker.serviceAreas && worker.serviceAreas.length > 0 && (
                     <div className="flex items-start gap-2 pt-1 border-t border-slate-200/60">
-                      <span className="font-semibold text-slate-800 shrink-0">কাজের আওতাভুক্ত এলাকা:</span>
+                      <span className="font-semibold text-slate-800 shrink-0">{isBn ? 'কাজের আওতাভুক্ত এলাকা:' : 'Coverage Areas:'}</span>
                       <span className="text-slate-600">{worker.serviceAreas.join(', ')}</span>
                     </div>
                   )}
@@ -267,20 +275,22 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
                           <>
                             <Navigation className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                             <span className="text-blue-800 font-bold">
-                              আপনার অবস্থান থেকে দূরত্ব: {distanceResult.formattedDistance}
+                              {isBn ? 'আপনার অবস্থান থেকে দূরত্ব:' : 'Distance from you:'} {isBn ? distanceResult.formattedDistance : distanceResult.formattedDistance.replace('কিমি', 'km')}
                             </span>
                           </>
                         ) : (
                           <>
                             <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                             <span className="text-emerald-800 font-semibold">
-                              অবস্থান মিল: {distanceResult.matchLabelBn}
+                              {isBn ? 'অবস্থান মিল:' : 'Location Match:'} {isBn ? distanceResult.matchLabelBn : (distanceResult.matchType === 'same_area' ? 'Exact Area Match' : (distanceResult.matchType === 'same_upazila' ? 'Same Upazila' : (distanceResult.matchType === 'same_district' ? 'Same District' : 'District Area')))}
                             </span>
                           </>
                         )}
                       </div>
                       <span className="text-[11px] font-medium text-slate-500">
-                        {distanceResult.matchType === 'live_gps' && isOnline ? 'লাইভ জিপিএস স্থানাঙ্ক ভিত্তিক' : 'এলাকা/উপজেলা ভিত্তিক মিল'}
+                        {distanceResult.matchType === 'live_gps' && isOnline 
+                          ? (isBn ? 'লাইভ জিপিএস স্থানাঙ্ক ভিত্তিক' : 'Live GPS Based') 
+                          : (isBn ? 'এলাকা/উপজেলা ভিত্তিক মিল' : 'Area / Upazila Match')}
                       </span>
                     </div>
                   )}
@@ -293,7 +303,7 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           {worker.workHistories && worker.workHistories.length > 0 && (
             <div>
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-                পূর্ববর্তী কাজের ইতিহাস (Work History)
+                {isBn ? 'পূর্ববর্তী কাজের ইতিহাস (Work History)' : 'Work History'}
               </h4>
               <div className="space-y-2.5">
                 {worker.workHistories.map((wh) => (
@@ -319,17 +329,17 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-2.5">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                গ্রাহকদের রিভিউ ({reviews.length})
+                {isBn ? 'গ্রাহকদের রিভিউ' : 'Customer Reviews'} ({formatNumber(reviews.length)})
               </h4>
               <span className="text-xs font-semibold text-amber-600 flex items-center gap-1">
                 <Star className="w-3.5 h-3.5 fill-amber-500" />
-                <span>{stats.averageRating.toFixed(1)} / ৫.০</span>
+                <span>{formatNumber(stats.averageRating.toFixed(1))} / {isBn ? '৫.০' : '5.0'}</span>
               </span>
             </div>
 
             {reviews.length === 0 ? (
               <p className="text-xs text-slate-500 py-3 text-center bg-slate-50 rounded-xl border border-slate-100">
-                এই কর্মীর জন্য এখনও কোনো রিভিউ যোগ হয়নি।
+                {isBn ? 'এই কর্মীর জন্য এখনও কোনো রিভিউ যোগ হয়নি।' : 'No reviews added for this worker yet.'}
               </p>
             ) : (
               <div className="space-y-2.5">
@@ -357,7 +367,9 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
           <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2 text-xs text-blue-900">
             <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <p>
-              <strong>নিরাপত্তা ও গোপনীয়তা সুরক্ষা:</strong> এই প্রোফাইলটি HelpLine প্ল্যাটফর্মে যাচাইকৃত। সুরক্ষার স্বার্থে কর্মীর এনআইডি নম্বর ও ব্যক্তিগত লাইভ জিপিএস গোপন রাখা হয়েছে।
+              <strong>{isBn ? 'নিরাপত্তা ও গোপনীয়তা সুরক্ষা:' : 'Safety & Privacy Protection:'}</strong> {isBn 
+                ? 'এই প্রোফাইলটি HelpLine প্ল্যাটফর্মে যাচাইকৃত। সুরক্ষার স্বার্থে কর্মীর এনআইডি নম্বর ও ব্যক্তিগত লাইভ জিপিএস গোপন রাখা হয়েছে।'
+                : 'This profile is verified on HelpLine platform. Worker NID number and live GPS are kept confidential for security.'}
             </p>
           </div>
         </div>
@@ -370,7 +382,7 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
             className="w-full sm:w-auto flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-white text-slate-700 text-xs font-bold transition cursor-pointer"
           >
             <PhoneCall className="w-4 h-4 text-blue-600" />
-            <span>সরাসরি কল (Call)</span>
+            <span>{isBn ? 'সরাসরি কল (Call)' : 'Direct Call'}</span>
           </button>
 
           <button
@@ -382,7 +394,7 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
             className="w-full sm:flex-1 flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition cursor-pointer shadow-xs"
           >
             <Send className="w-4 h-4" />
-            <span>কাজের অনুরোধ পাঠান (Hire Request)</span>
+            <span>{isBn ? 'কাজের অনুরোধ পাঠান (Hire Request)' : 'Send Hire Request'}</span>
           </button>
         </div>
 
@@ -396,24 +408,26 @@ export const WorkerProfileModal: React.FC<WorkerProfileModalProps> = ({
               <div>
                 <h3 className="font-bold text-slate-900 text-base">{worker.fullName}</h3>
                 <p className="text-xs text-slate-500">{mainProf}</p>
-                <p className="text-lg font-bold text-blue-600 mt-2 font-mono">{worker.phoneNumber}</p>
+                <p className="text-lg font-bold text-blue-600 mt-2 font-mono">{formatNumber(worker.phoneNumber)}</p>
               </div>
               <p className="text-[11px] text-slate-500">
-                HelpLine নিরাপদ কলিং। কাজের ধরন ও আনুমানিক বাজেট নিয়ে ফোনে আলোচনা করুন।
+                {isBn 
+                  ? 'HelpLine নিরাপদ কলিং। কাজের ধরন ও আনুমানিক বাজেট নিয়ে ফোনে আলোচনা করুন।' 
+                  : 'HelpLine Safe Calling. Discuss job scope and estimated budget directly.'}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowCallDialog(false)}
                   className="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
-                  বন্ধ করুন
+                  {isBn ? 'বন্ধ করুন' : 'Close'}
                 </button>
                 <a
                   href={`tel:${worker.phoneNumber}`}
                   className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   <PhoneCall className="w-3.5 h-3.5" />
-                  <span>এখনই কল করুন</span>
+                  <span>{isBn ? 'এখনই কল করুন' : 'Call Now'}</span>
                 </a>
               </div>
             </div>

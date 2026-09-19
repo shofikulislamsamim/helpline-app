@@ -11,6 +11,7 @@ import {
 import { HireRequest } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useHire } from '../../context/HireContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface JobChatModalProps {
   request: HireRequest | null;
@@ -21,6 +22,7 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
   request,
   onClose,
 }) => {
+  const { t, isBn, formatNumber } = useLanguage();
   const { userProfile } = useAuth();
   const { getConversationByRequestId, getMessagesForConversation, sendMessage } = useHire();
 
@@ -36,7 +38,7 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
   const otherPartyName = isCustomer ? request.workerName : request.customerName;
   const otherPartyPhone = isCustomer ? request.workerPhone : request.customerPhone;
   const otherPartyAvatar = isCustomer ? request.workerAvatar : request.customerAvatar;
-  const otherPartyRole = isCustomer ? 'দক্ষ কর্মী' : 'গ্রাহক';
+  const otherPartyRole = isCustomer ? (isBn ? 'দক্ষ কর্মী' : 'Worker') : (isBn ? 'গ্রাহক' : 'Customer');
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,8 +52,12 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
   };
 
   const quickChips = isCustomer
-    ? ['ঠিকানাটি নিশ্চিত করুন', 'কখন পৌঁছাবেন?', 'কোনো পার্টস লাগবে কি?']
-    : ['আমি রওনা দিয়েছি', '১০ মিনিটে পৌঁছাচ্ছি ইনশাআল্লাহ', 'ঠিকানাটা খুঁজে পাচ্ছি না'];
+    ? (isBn 
+        ? ['ঠিকানাটি নিশ্চিত করুন', 'কখন পৌঁছাবেন?', 'কোনো পার্টস লাগবে কি?'] 
+        : ['Please confirm address', 'When will you arrive?', 'Need any spare parts?'])
+    : (isBn 
+        ? ['আমি রওনা দিয়েছি', '১০ মিনিটে পৌঁছাচ্ছি ইনশাআল্লাহ', 'ঠিকানাটা খুঁজে পাচ্ছি না'] 
+        : ['I am on the way', 'Arriving in 10 minutes', 'Cannot find the address']);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
@@ -80,7 +86,7 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-blue-300">
-                কাজ: {request.workType} (#{request.id})
+                {isBn ? 'কাজ:' : 'Job:'} {request.workType} (#{request.id})
               </p>
             </div>
           </div>
@@ -88,7 +94,7 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
           <div className="flex items-center gap-1.5">
             <a
               href={`tel:${otherPartyPhone}`}
-              title="কল করুন"
+              title={isBn ? 'কল করুন' : 'Call'}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
             >
               <PhoneCall className="w-4 h-4 text-emerald-400" />
@@ -104,8 +110,8 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
 
         {/* Notice */}
         <div className="py-1.5 px-4 bg-blue-50 border-b border-blue-100 text-[11px] text-blue-800 flex items-center justify-between">
-          <span>চুক্তি পারিশ্রমিক: <strong>৳{request.agreedPrice || request.quote?.estimatedPrice || request.budget || 'আলোচনা সাপেক্ষে'}</strong></span>
-          <span className="font-semibold text-slate-600">স্ট্যাটাস: {request.status}</span>
+          <span>{isBn ? 'চুক্তি পারিশ্রমিক:' : 'Agreed Amount:'} <strong>৳{request.agreedPrice ? formatNumber(request.agreedPrice) : (request.quote?.estimatedPrice ? formatNumber(request.quote.estimatedPrice) : (request.budget ? formatNumber(request.budget) : (isBn ? 'আলোচনা সাপেক্ষে' : 'Negotiable')))}</strong></span>
+          <span className="font-semibold text-slate-600">{isBn ? 'স্ট্যাটাস:' : 'Status:'} {request.status}</span>
         </div>
 
         {/* Messages List */}
@@ -113,8 +119,8 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
           {messages.length === 0 ? (
             <div className="text-center py-12 text-slate-400 text-xs">
               <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
-              <p>এখনও কোনো মেসেজ আদান-প্রদান হয়নি।</p>
-              <p className="text-[11px] mt-0.5">নিচের দ্রুত বাটন চাপুন বা লিখে শুরু করুন।</p>
+              <p>{isBn ? 'এখনও কোনো মেসেজ আদান-প্রদান হয়নি।' : 'No messages yet.'}</p>
+              <p className="text-[11px] mt-0.5">{isBn ? 'নিচের দ্রুত বাটন চাপুন বা লিখে শুরু করুন।' : 'Tap suggestions below or start typing.'}</p>
             </div>
           ) : (
             messages.map((m) => {
@@ -151,7 +157,7 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
                         }`}
                       >
                         <span>
-                          {new Date(m.timestamp).toLocaleTimeString('bn-BD', {
+                          {new Date(m.timestamp).toLocaleTimeString(isBn ? 'bn-BD' : 'en-US', {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
@@ -193,7 +199,7 @@ export const JobChatModal: React.FC<JobChatModalProps> = ({
             type="text"
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            placeholder="মেসেজ লিখুন..."
+            placeholder={isBn ? 'মেসেজ লিখুন...' : 'Type a message...'}
             className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
           <button

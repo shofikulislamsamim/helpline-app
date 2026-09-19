@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Star, Send, AlertCircle, CheckCircle } from 'lucide-react';
 import { HireRequest } from '../../types';
 import { useHire } from '../../context/HireContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface RatingModalProps {
   request: HireRequest | null;
@@ -14,6 +15,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { t, isBn } = useLanguage();
   const { submitRating } = useHire();
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(0);
@@ -26,7 +28,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim() || comment.trim().length < 5) {
-      setErrorMsg('অনুগ্রহ করে কর্মীর কাজ সম্পর্কে সংক্ষিপ্ত মতামত লিখুন (কমপক্ষে ৫ অক্ষর)।');
+      setErrorMsg(isBn ? 'অনুগ্রহ করে কর্মীর কাজ সম্পর্কে সংক্ষিপ্ত মতামত লিখুন (কমপক্ষে ৫ অক্ষর)।' : 'Please provide brief feedback about the service (at least 5 characters).');
       return;
     }
 
@@ -37,18 +39,18 @@ export const RatingModal: React.FC<RatingModalProps> = ({
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      setErrorMsg(err.message || 'রেটিং সাবমিট করতে ব্যর্থ হয়েছে।');
+      setErrorMsg(err.message || (isBn ? 'রেটিং সাবমিট করতে ব্যর্থ হয়েছে।' : 'Failed to submit rating.'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const ratingLabels: Record<number, string> = {
-    1: 'খুবই অসন্তোষজনক (Very Poor)',
-    2: 'সন্তোষজনক নয় (Poor)',
-    3: 'মোটামুটি ভালো (Average)',
-    4: 'বেশ ভালো কাজ (Good)',
-    5: 'অসাধারণ সেবা (Excellent)',
+    1: isBn ? 'খুবই অসন্তোষজনক (Very Poor)' : 'Very Poor',
+    2: isBn ? 'সন্তোষজনক নয় (Poor)' : 'Poor',
+    3: isBn ? 'মোটামুটি ভালো (Average)' : 'Average',
+    4: isBn ? 'বেশ ভালো কাজ (Good)' : 'Good',
+    5: isBn ? 'অসাধারণ সেবা (Excellent)' : 'Excellent',
   };
 
   return (
@@ -56,8 +58,8 @@ export const RatingModal: React.FC<RatingModalProps> = ({
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
         <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-white text-base">কাজের রেটিং ও রিভিউ দিন</h3>
-            <p className="text-xs text-slate-400">অনুরোধ #{request.id}</p>
+            <h3 className="font-bold text-white text-base">{isBn ? 'কাজের রেটিং ও রিভিউ দিন' : 'Rate & Review Work'}</h3>
+            <p className="text-xs text-slate-400">{isBn ? 'অনুরোধ' : 'Request'} #{request.id}</p>
           </div>
           <button
             onClick={onClose}
@@ -111,13 +113,13 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold text-slate-800 mb-1">
-              আপনার বাস্তব অভিজ্ঞতা ও মূল্যায়ন <span className="text-red-500">*</span>
+              {isBn ? 'আপনার বাস্তব অভিজ্ঞতা ও মূল্যায়ন' : 'Your Review & Experience'} <span className="text-red-500">*</span>
             </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={3}
-              placeholder="কাজের গুণমান, সময়ানুবর্তিতা এবং ব্যবহার কেমন ছিল লিখুন..."
+              placeholder={isBn ? 'কাজের গুণমান, সময়ানুবর্তিতা এবং ব্যবহার কেমন ছিল লিখুন...' : 'Write about quality of work, punctuality, and behavior...'}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 resize-none"
               required
             />
@@ -136,7 +138,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               onClick={onClose}
               className="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-600 transition cursor-pointer"
             >
-              বাতিল
+              {isBn ? 'বাতিল' : 'Cancel'}
             </button>
             <button
               type="submit"
@@ -144,7 +146,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               className="flex-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>{isSubmitting ? 'জমা হচ্ছে...' : 'রিভিউ জমা দিন'}</span>
+              <span>{isSubmitting ? (isBn ? 'জমা হচ্ছে...' : 'Submitting...') : (isBn ? 'রিভিউ জমা দিন' : 'Submit Review')}</span>
             </button>
           </div>
         </form>

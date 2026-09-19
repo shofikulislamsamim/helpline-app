@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Lock, Mail, Phone, User, LogIn, UserPlus, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { isValidBdPhoneNumber } from '../../lib/profileHelpers';
 
 interface AuthModalProps {
@@ -11,6 +12,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'login' }) => {
   const { loginWithEmail, registerWithEmail, loginWithGoogle, loginAsDemoUser } = useAuth();
+  const { t, isBn } = useLanguage();
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -29,11 +31,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
 
     const identifier = email || phone;
     if (!identifier.trim()) {
-      setErrorMessage('অনুগ্রহ করে মোবাইল নম্বর বা ইমেইল প্রবেশ করান');
+      setErrorMessage(isBn ? 'অনুগ্রহ করে মোবাইল নম্বর বা ইমেইল প্রবেশ করান' : 'Please enter mobile number or email');
       return;
     }
     if (!password) {
-      setErrorMessage('অনুগ্রহ করে পাসওয়ার্ড প্রবেশ করান');
+      setErrorMessage(isBn ? 'অনুগ্রহ করে পাসওয়ার্ড প্রবেশ করান' : 'Please enter password');
       return;
     }
 
@@ -43,9 +45,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
       onClose();
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
-        setErrorMessage('ভুল তথ্য বা অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে পুনরায় চেষ্টা করুন।');
+        setErrorMessage(t.auth.invalidCredentials);
       } else {
-        setErrorMessage('লগইন ব্যর্থ হয়েছে। ডেমো অ্যাকাউন্ট বা গুগল দিয়ে চেষ্টা করতে পারেন।');
+        setErrorMessage(t.auth.authFailed);
       }
     } finally {
       setLoading(false);
@@ -57,15 +59,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
     setErrorMessage(null);
 
     if (!fullName.trim() || fullName.trim().length < 2) {
-      setErrorMessage('অনুগ্রহ করে আপনার সঠিক পূর্ণ নাম লিখুন');
+      setErrorMessage(t.auth.nameRequired);
       return;
     }
     if (!phone.trim() || !isValidBdPhoneNumber(phone)) {
-      setErrorMessage('সঠিক বাংলাদেশি মোবাইল নম্বর দিন (যেমন: 01700123456)');
+      setErrorMessage(t.auth.invalidPhone);
       return;
     }
     if (password.length < 6) {
-      setErrorMessage('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে');
+      setErrorMessage(t.auth.passwordTooShort);
       return;
     }
 
@@ -75,9 +77,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
       onClose();
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
-        setErrorMessage('এই তথ্য দিয়ে ইতোমধ্যে একটি অ্যাকাউন্ট তৈরি করা হয়েছে। অনুগ্রহ করে লগইন করুন।');
+        setErrorMessage(t.auth.emailInUse);
       } else {
-        setErrorMessage('নিবন্ধন সম্পন্ন করা যায়নি। অনুগ্রহ করে তথ্য পরীক্ষা করুন বা ডেমো মোড ব্যবহার করুন।');
+        setErrorMessage(isBn ? 'নিবন্ধন সম্পন্ন করা যায়নি। অনুগ্রহ করে তথ্য পরীক্ষা করুন বা ডেমো মোড ব্যবহার করুন।' : 'Registration could not be completed. Please check your details or use demo mode.');
       }
     } finally {
       setLoading(false);
@@ -91,7 +93,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
       await loginWithGoogle();
       onClose();
     } catch (err) {
-      setErrorMessage('গুগল সাইন-ইন সম্পন্ন হয়নি। অনুগ্রহ করে নিচের "ডেমো প্রবেশ" বাটন ব্যবহার করুন।');
+      setErrorMessage(isBn ? 'গুগল সাইন-ইন সম্পন্ন হয়নি। অনুগ্রহ করে নিচের "ডেমো প্রবেশ" বাটন ব্যবহার করুন।' : 'Google sign-in failed. Please use the "Instant Demo" button below.');
     } finally {
       setLoading(false);
     }
@@ -113,7 +115,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-            aria-label="Close"
+            aria-label={t.common.close}
           >
             <X className="w-5 h-5" />
           </button>
@@ -122,12 +124,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
             <span className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-sm text-white">
               H
             </span>
-            <span className="font-bold text-base tracking-tight">HelpLine প্ল্যাটফর্মে স্বাগতম</span>
+            <span className="font-bold text-base tracking-tight">
+              {isBn ? 'HelpLine প্ল্যাটফর্মে স্বাগতম' : 'Welcome to HelpLine'}
+            </span>
           </div>
           <p className="text-xs text-slate-300">
-            {mode === 'login' 
-              ? 'আপনার অ্যাকাউন্টে প্রবেশ করে কার্যক্রম পরিচালনা করুন' 
-              : 'একটি অ্যাকাউন্ট তৈরি করে কাজ খুঁজুন বা সেবা গ্রহণ করুন'}
+            {mode === 'login' ? t.auth.loginSubtitle : t.auth.registerSubtitle}
           </p>
 
           {/* Mode Switcher Tabs */}
@@ -143,7 +145,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
               }`}
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>লগইন (Login)</span>
+              <span>{isBn ? 'লগইন' : 'Login'}</span>
             </button>
             <button
               type="button"
@@ -156,7 +158,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" />
-              <span>অ্যাকাউন্ট তৈরি (Register)</span>
+              <span>{isBn ? 'অ্যাকাউন্ট তৈরি' : 'Register'}</span>
             </button>
           </div>
         </div>
@@ -174,7 +176,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
             <form onSubmit={handleLoginSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  মোবাইল নম্বর বা ইমেইল (Mobile / Email)
+                  {t.auth.identifierLabel}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -185,7 +187,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="যেমন: 01700123456 বা yourname@email.com"
+                    placeholder={t.auth.identifierPlaceholder}
                     className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                   />
                 </div>
@@ -193,7 +195,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  পাসওয়ার্ড (Password)
+                  {t.auth.passwordLabel}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -204,7 +206,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="আপনার গোপন পাসওয়ার্ড"
+                    placeholder={t.auth.passwordPlaceholder}
                     className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                   />
                 </div>
@@ -215,14 +217,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                 disabled={loading}
                 className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {loading ? 'প্রবেশ করা হচ্ছে...' : 'লগইন করুন'}
+                {loading ? (isBn ? 'প্রবেশ করা হচ্ছে...' : 'Signing in...') : t.auth.loginBtn}
               </button>
             </form>
           ) : (
             <form onSubmit={handleRegisterSubmit} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  আপনার পূর্ণ নাম (Full Name) <span className="text-red-500">*</span>
+                  {t.auth.fullNameLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -233,7 +235,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="যেমন: মোঃ কামরুল হাসান"
+                    placeholder={t.auth.fullNamePlaceholder}
                     className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   />
                 </div>
@@ -241,7 +243,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  মোবাইল নম্বর (Mobile Number) <span className="text-red-500">*</span>
+                  {t.auth.phoneLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -252,16 +254,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="01XXXXXXXXX (১১ ডিজিট)"
+                    placeholder={t.auth.phonePlaceholder}
                     className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   />
                 </div>
-                <p className="text-[10px] text-slate-500 mt-0.5">ভবিষ্যতে OTP ভেরিফিকেশনের জন্য ব্যবহৃত হবে</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {isBn ? 'ভবিষ্যতে OTP ভেরিফিকেশনের জন্য ব্যবহৃত হবে' : 'Used for OTP verification in the future'}
+                </p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ইমেইল (ঐচ্ছিক / Optional)
+                  {t.auth.emailLabel}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -271,7 +275,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@example.com"
+                    placeholder={t.auth.emailPlaceholder}
                     className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   />
                 </div>
@@ -279,7 +283,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  পাসওয়ার্ড তৈরি করুন (Password) <span className="text-red-500">*</span>
+                  {t.auth.passwordLabel} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -290,14 +294,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="কমপক্ষে ৬ অক্ষরের শক্তিশালী পাসওয়ার্ড"
+                    placeholder={t.auth.passwordPlaceholder}
                     className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   />
                 </div>
               </div>
 
               <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[11px] text-slate-600">
-                অ্যাকাউন্ট তৈরি করার পর আপনাকে <strong className="text-slate-800">প্রোফাইল সেটআপ</strong> ধাপে নিয়ে যাওয়া হবে।
+                {isBn ? (
+                  <>অ্যাকাউন্ট তৈরি করার পর আপনাকে <strong className="text-slate-800">প্রোফাইল সেটআপ</strong> ধাপে নিয়ে যাওয়া হবে।</>
+                ) : (
+                  <>After creating an account, you will be taken to the <strong className="text-slate-800">Profile Setup</strong> step.</>
+                )}
               </div>
 
               <button
@@ -305,7 +313,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                 disabled={loading}
                 className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {loading ? 'অ্যাকাউন্ট তৈরি হচ্ছে...' : 'অ্যাকাউন্ট তৈরি সম্পন্ন করুন'}
+                {loading ? (isBn ? 'অ্যাকাউন্ট তৈরি হচ্ছে...' : 'Creating account...') : t.auth.registerBtn}
               </button>
             </form>
           )}
@@ -316,7 +324,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
               <div className="w-full border-t border-slate-200" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-white px-2 text-slate-400 font-medium">অথবা বিকল্প পদ্ধতি</span>
+              <span className="bg-white px-2 text-slate-400 font-medium">
+                {isBn ? 'অথবা বিকল্প পদ্ধতি' : 'or alternative options'}
+              </span>
             </div>
           </div>
 
@@ -345,7 +355,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                   d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
                 />
               </svg>
-              <span>গুগল অ্যাকাউন্ট দিয়ে সাইন-ইন</span>
+              <span>{t.auth.googleLoginBtn}</span>
             </button>
 
             <button
@@ -354,7 +364,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
               className="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>ডেমো অ্যাকাউন্ট দিয়ে দ্রুত প্রবেশ করুন (Instant Demo)</span>
+              <span>{t.auth.demoLoginBtn}</span>
             </button>
           </div>
         </div>

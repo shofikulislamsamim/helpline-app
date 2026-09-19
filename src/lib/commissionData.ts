@@ -12,13 +12,13 @@ export interface CommissionSettings {
 }
 
 export const DEFAULT_COMMISSION_SETTINGS: CommissionSettings = {
-  isEnabled: true,
-  commissionPercentage: 5,
-  fixedFee: 10,
-  minPlatformFee: 10,
-  maxPlatformFee: 500,
+  isEnabled: false,
+  commissionPercentage: 0,
+  fixedFee: 0,
+  minPlatformFee: 0,
+  maxPlatformFee: 0,
   effectiveDate: '2026-03-01',
-  notes: 'প্রস্তুতিমূলক হিসাব। কোনো টাকা সরাসরি কাটা হয় না, কাজ শেষে গ্রাহক কর্মীকে সরাসরি পরিশোধ করবেন।',
+  notes: 'হেল্পলাইনে কোনো প্ল্যাটফর্ম ফি, সার্ভিস চার্জ বা কমিশন নেই (০%)। গ্রাহক কাজ শেষে কর্মীকে সরাসরি সম্পূর্ণ পারিশ্রমিক পরিশোধ করবেন।',
 };
 
 export interface CalculatedFeeResult extends ServiceFeeBreakdown {
@@ -32,78 +32,29 @@ export interface CalculatedFeeResult extends ServiceFeeBreakdown {
 
 /**
  * Calculates platform commission and service fee breakdown.
- * Adapts seamlessly between CommissionSettings and HireAdminSettings.
+ * HelpLine Final Payment Rule: NO transaction-related fees (0% fee, 0% commission).
+ * Customer Payable = Agreed Price, Worker Receivable = Agreed Price, All Fees = 0.
  */
 export function calculateServiceFee(
   agreedPrice: number,
-  settings?: Partial<CommissionSettings> | Partial<HireAdminSettings> | null
+  _settings?: Partial<CommissionSettings> | Partial<HireAdminSettings> | null
 ): CalculatedFeeResult {
   const basePrice = Math.max(0, Number(agreedPrice) || 0);
-  
-  // Normalise input settings
-  const isEnabled = settings && 'isEnabled' in settings 
-    ? Boolean(settings.isEnabled) 
-    : (settings && 'serviceFeeEnabled' in settings ? Boolean(settings.serviceFeeEnabled) : true);
-
-  const percentage = settings && 'commissionPercentage' in settings && typeof settings.commissionPercentage === 'number'
-    ? settings.commissionPercentage
-    : 5;
-
-  const fixed = settings && 'fixedFee' in settings && typeof settings.fixedFee === 'number'
-    ? settings.fixedFee
-    : (settings && 'fixedServiceFee' in settings && typeof settings.fixedServiceFee === 'number' ? settings.fixedServiceFee : 10);
-
-  const minFee = settings && 'minPlatformFee' in settings && typeof settings.minPlatformFee === 'number'
-    ? settings.minPlatformFee
-    : (settings && 'minServiceFee' in settings && typeof settings.minServiceFee === 'number' ? settings.minServiceFee : 10);
-
-  const maxFee = settings && 'maxPlatformFee' in settings && typeof settings.maxPlatformFee === 'number'
-    ? settings.maxPlatformFee
-    : (settings && 'maxServiceFee' in settings && typeof settings.maxServiceFee === 'number' ? settings.maxServiceFee : 500);
-
-  const notes = settings && 'notes' in settings && typeof settings.notes === 'string'
-    ? settings.notes
-    : 'প্রস্তুতিমূলক হিসাব। কোনো টাকা সরাসরি কাটা হয় না, গ্রাহক কাজ শেষে কর্মীকে সরাসরি পরিশোধ করবেন।';
-
-  if (!isEnabled || basePrice === 0) {
-    return {
-      feeEnabled: false,
-      isEnabled: false,
-      agreedPrice: basePrice,
-      commissionPercentage: 0,
-      fixedFee: 0,
-      percentageFee: 0,
-      calculatedFee: 0,
-      totalServiceFee: 0,
-      workerReceivable: basePrice,
-      workerReceivableAmount: basePrice,
-      customerPayable: basePrice,
-      customerTotalPayable: basePrice,
-      calculatedAt: new Date().toISOString(),
-      preparatoryNotice: notes,
-    };
-  }
-
-  const percentageFee = Math.round((basePrice * percentage) / 100);
-  const rawTotalFee = percentageFee + fixed;
-  const boundedFee = Math.max(minFee, Math.min(maxFee, rawTotalFee));
-  const finalFee = Math.min(boundedFee, Math.floor(basePrice * 0.5)); // Never exceed 50%
-  const workerReceivable = Math.max(0, basePrice - finalFee);
 
   return {
-    feeEnabled: true,
-    isEnabled: true,
+    feeEnabled: false,
+    isEnabled: false,
     agreedPrice: basePrice,
-    commissionPercentage: percentage,
-    fixedFee: fixed,
-    percentageFee,
-    calculatedFee: finalFee,
-    totalServiceFee: finalFee,
-    workerReceivable,
-    workerReceivableAmount: workerReceivable,
+    commissionPercentage: 0,
+    fixedFee: 0,
+    percentageFee: 0,
+    calculatedFee: 0,
+    totalServiceFee: 0,
+    workerReceivable: basePrice,
+    workerReceivableAmount: basePrice,
     customerPayable: basePrice,
     customerTotalPayable: basePrice,
     calculatedAt: new Date().toISOString(),
-    preparatoryNotice: notes,
+    preparatoryNotice: 'হেল্পলাইনে কোনো প্ল্যাটফর্ম ফি বা কমিশন নেই (০%)। গ্রাহক সরাসরি সম্পূর্ণ টাকা কর্মীকে পরিশোধ করবেন।',
   };
 }

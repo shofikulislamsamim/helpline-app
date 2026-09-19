@@ -1,7 +1,8 @@
 import React from 'react';
-import { Layers, CheckCircle, Plus } from 'lucide-react';
+import { Layers, CheckCircle } from 'lucide-react';
 import { ServiceDeliveryType } from '../../types';
 import { SERVICE_TYPES_LIST } from '../../lib/professionsData';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ServiceTypesSectionProps {
   selectedTypes?: ServiceDeliveryType[];
@@ -14,6 +15,8 @@ export const ServiceTypesSection: React.FC<ServiceTypesSectionProps> = ({
   onChange,
   readOnly = false,
 }) => {
+  const { isBn } = useLanguage();
+
   const toggleType = (id: ServiceDeliveryType) => {
     if (readOnly || !onChange) return;
     if (selectedTypes.includes(id)) {
@@ -30,10 +33,12 @@ export const ServiceTypesSection: React.FC<ServiceTypesSectionProps> = ({
       <div>
         <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-2">
           <Layers className="w-4 h-4 text-blue-600" />
-          <span>৬. সেবার ধরন ও কাজের পরিধি (Service Delivery Types)</span>
+          <span>{isBn ? '৬. সেবার ধরন ও কাজের পরিধি (Service Delivery Types)' : '6. Service Delivery Types'}</span>
         </h3>
         <p className="text-xs text-slate-500 mt-0.5">
-          আপনি কোন কোন শর্তে বা উপায়ে কাজ করতে প্রস্তুত তা নির্বাচন করুন (এক বা একাধিক নির্বাচনযোগ্য)।
+          {isBn 
+            ? 'আপনি কোন কোন শর্তে বা উপায়ে কাজ করতে প্রস্তুত তা নির্বাচন করুন (এক বা একাধিক নির্বাচনযোগ্য)।' 
+            : 'Select the conditions or modes in which you are available to work (multiple selectable).'}
         </p>
       </div>
 
@@ -55,7 +60,9 @@ export const ServiceTypesSection: React.FC<ServiceTypesSectionProps> = ({
               <div className="text-2xl shrink-0 mt-0.5">{type.icon}</div>
               <div className="space-y-0.5 flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs text-slate-900">{type.titleBn}</h4>
+                  <h4 className="font-bold text-xs text-slate-900">
+                    {isBn ? type.titleBn : (type.titleEn || type.titleBn)}
+                  </h4>
                   <div
                     className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 border ${
                       isSelected
@@ -67,7 +74,7 @@ export const ServiceTypesSection: React.FC<ServiceTypesSectionProps> = ({
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  {type.subtitleBn}
+                  {isBn ? type.subtitleBn : (type.subtitleEn || type.subtitleBn)}
                 </p>
               </div>
             </div>

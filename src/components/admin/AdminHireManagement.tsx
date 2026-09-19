@@ -548,11 +548,11 @@ export const AdminHireManagement: React.FC = () => {
                   <span className="text-white font-mono font-bold text-sm">৳{calculatedPreview.agreedPrice}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
-                  <span className="text-blue-400 text-[10px] block">প্ল্যাটফর্ম ফি ({commissionForm.commissionPercentage}% + ৳{commissionForm.fixedFee})</span>
-                  <span className="text-blue-300 font-mono font-bold text-sm">৳{calculatedPreview.totalServiceFee}</span>
+                  <span className="text-blue-400 text-[10px] block">প্ল্যাটফর্ম ফি (০% পলিসি)</span>
+                  <span className="text-blue-300 font-mono font-bold text-sm">৳0</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
-                  <span className="text-emerald-400 text-[10px] block">কারিগর প্রাপ্য নীট অর্থ</span>
+                  <span className="text-emerald-400 text-[10px] block">কারিগর প্রাপ্য অর্থ</span>
                   <span className="text-emerald-300 font-mono font-bold text-sm">৳{calculatedPreview.workerReceivableAmount}</span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
@@ -561,10 +561,10 @@ export const AdminHireManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-1.5 text-[11px] text-amber-300/90 pt-1">
-                <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-1.5 text-[11px] text-emerald-300/90 pt-1">
+                <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                 <span>
-                  <strong>প্রস্তুতিমূলক বিজ্ঞপ্তি:</strong> এটি একটি প্রস্তুতিমূলক হিসাব ইঞ্জিন। কোনো প্রকৃত অর্থ কর্তন বা পেমেন্ট গেটওয়ে চার্জ করা হয় না।
+                  <strong>হেল্পলাইন নীতি:</strong> হেল্পলাইনে কোনো লেনদেন ফি বা কমিশন নেই। গ্রাহকের মোট প্রদেয় এবং কর্মীর মোট প্রাপ্য শতভাগ সমান।
                 </span>
               </div>
             </div>
@@ -616,9 +616,9 @@ export const AdminHireManagement: React.FC = () => {
                 if (!fee) return null;
                 return (
                   <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 mt-3">
-                    <span className="font-bold text-blue-400 block text-xs flex items-center gap-1.5">
+                    <span className="font-bold text-emerald-400 block text-xs flex items-center gap-1.5">
                       <Coins className="w-3.5 h-3.5" />
-                      সার্ভিস ফি ও কমিশন বিবরণী (Service Fee Breakdown)
+                      আর্থিক বিবরণী (Zero-Fee Breakdown)
                     </span>
                     <div className="grid grid-cols-2 gap-2 text-[11px]">
                       <div>
@@ -626,16 +626,8 @@ export const AdminHireManagement: React.FC = () => {
                         <p className="font-mono text-white font-bold">৳{fee.agreedPrice}</p>
                       </div>
                       <div>
-                        <span className="text-slate-400">প্ল্যাটফর্ম কমিশন ({fee.commissionPercentage}%):</span>
-                        <p className="font-mono text-blue-300 font-bold">৳{fee.percentageFee}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400">ফিক্সড সার্ভিস চার্জ:</span>
-                        <p className="font-mono text-blue-300 font-bold">৳{fee.fixedFee}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400">মোট প্ল্যাটফর্ম ফি:</span>
-                        <p className="font-mono text-blue-400 font-bold">৳{fee.totalServiceFee}</p>
+                        <span className="text-slate-400">প্ল্যাটফর্ম ফি ও কমিশন:</span>
+                        <p className="font-mono text-emerald-400 font-bold">৳0 (০%)</p>
                       </div>
                       <div>
                         <span className="text-slate-400">কারিগর প্রাপ্য অর্থ (Net):</span>
@@ -643,10 +635,10 @@ export const AdminHireManagement: React.FC = () => {
                       </div>
                       <div>
                         <span className="text-slate-400">গ্রাহকের মোট প্রদেয়:</span>
-                        <p className="font-mono text-purple-400 font-bold">৳{fee.customerTotalPayable}</p>
+                        <p className="font-mono text-blue-400 font-bold">৳{fee.customerTotalPayable}</p>
                       </div>
                     </div>
-                    <p className="text-[10px] text-amber-400/90 pt-1 border-t border-slate-800">
+                    <p className="text-[10px] text-emerald-400/90 pt-1 border-t border-slate-800">
                       ℹ️ {fee.preparatoryNotice}
                     </p>
                   </div>

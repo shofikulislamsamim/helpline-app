@@ -9,10 +9,8 @@ import {
   Sparkles, 
   Search, 
   X, 
-  AlertCircle,
   ChevronDown,
   ChevronUp,
-  Tag,
   Briefcase
 } from 'lucide-react';
 import { 
@@ -22,10 +20,10 @@ import {
 import { 
   STANDARD_PROFESSIONS, 
   ProfessionDef, 
-  getProfessionSkills, 
   getProfessionByName 
 } from '../../lib/professionsData';
 import { CustomProfessionModal } from './CustomProfessionModal';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ProfessionSkillsManagerProps {
   categoryModes: ServiceCategoryMode[];
@@ -46,6 +44,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
   onMainProfessionChange,
   readOnly = false,
 }) => {
+  const { isBn, formatNumber } = useLanguage();
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'physical' | 'digital'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,8 +82,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
         const matchesBn = prof.nameBn.toLowerCase().includes(q);
         const matchesEn = prof.nameEn.toLowerCase().includes(q);
         const matchesSkill = prof.defaultSkills.some((s) => s.toLowerCase().includes(q));
-        const matchesDesc = prof.descriptionBn.toLowerCase().includes(q);
-        return matchesBn || matchesEn || matchesSkill || matchesDesc;
+        const matchesDescBn = prof.descriptionBn.toLowerCase().includes(q);
+        const matchesDescEn = prof.descriptionEn?.toLowerCase().includes(q) || false;
+        return matchesBn || matchesEn || matchesSkill || matchesDescBn || matchesDescEn;
       }
 
       return true;
@@ -218,10 +218,12 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
           <div>
             <h4 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-blue-600" />
-              <span>১. সেবার ধরন নির্বাচন করুন (Service Type)</span>
+              <span>{isBn ? '১. সেবার ধরন নির্বাচন করুন (Service Type)' : '1. Select Service Category (Service Type)'}</span>
             </h4>
             <p className="text-xs text-slate-500 mt-0.5">
-              আপনি কী ধরনের কাজ করেন বা ক্লায়েন্টকে সেবা দেন? (এক বা উভয়টি নির্বাচন করতে পারেন)
+              {isBn 
+                ? 'আপনি কী ধরনের কাজ করেন বা ক্লায়েন্টকে সেবা দেন? (এক বা উভয়টি নির্বাচন করতে পারেন)' 
+                : 'What kind of services or work do you offer to clients? (Select one or both)'}
             </p>
           </div>
         </div>
@@ -253,7 +255,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                 />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                গ্রাহকের বাসা, দোকান বা নির্দিষ্ট ঠিকানায় গিয়ে সরাসরি কাজ (যেমন: ইলেকট্রিশিয়ান, এসি মিস্ত্রি, প্লাম্বার, কার্পেন্টার)।
+                {isBn
+                  ? 'গ্রাহকের বাসা, দোকান বা নির্দিষ্ট ঠিকানায় গিয়ে সরাসরি কাজ (যেমন: ইলেকট্রিশিয়ান, এসি মিস্ত্রি, প্লাম্বার, কার্পেন্টার)।'
+                  : 'On-site service at customer location (e.g., Electrician, AC Tech, Plumber, Carpenter).'}
               </p>
             </div>
           </div>
@@ -284,7 +288,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                 />
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                কম্পিউটার বা অনলাইনে রিমোট ফ্রিল্যান্সিং কাজ (যেমন: গ্রাফিক ডিজাইন, ভিডিও এডিটিং, ওয়েব ডেভেলপমেন্ট, ডিজিটাল মার্কেটিং)।
+                {isBn
+                  ? 'কম্পিউটার বা অনলাইনে রিমোট ফ্রিল্যান্সিং কাজ (যেমন: গ্রাফিক ডিজাইন, ভিডিও এডিটিং, ওয়েব ডেভেলপমেন্ট, ডিজিটাল মার্কেটিং)।'
+                  : 'Remote freelance work via computer/online (e.g., Graphic Design, Video Editing, Web Dev, Digital Marketing).'}
               </p>
             </div>
           </div>
@@ -298,15 +304,17 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h4 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span>আপনার নির্বাচিত পেশাসমূহ ({userProfessions.length})</span>
+              <span>{isBn ? `আপনার নির্বাচিত পেশাসমূহ (${formatNumber(userProfessions.length)})` : `Your Selected Professions (${userProfessions.length})`}</span>
               {userProfessions.length > 0 && (
                 <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                  একাধিক পেশা সমর্থিত
+                  {isBn ? 'একাধিক পেশা সমর্থিত' : 'Multiple Supported'}
                 </span>
               )}
             </h4>
             <p className="text-xs text-slate-500 mt-0.5">
-              প্রতিটি পেশার পাশে ক্লিক করে এর আওতাধীন নির্দিষ্ট দক্ষতা ও অভিজ্ঞতা কাস্টমাইজ করুন।
+              {isBn 
+                ? 'প্রতিটি পেশার পাশে ক্লিক করে এর আওতাধীন নির্দিষ্ট দক্ষতা ও অভিজ্ঞতা কাস্টমাইজ করুন।' 
+                : 'Click each profession to customize its specific skills and experience.'}
             </p>
           </div>
 
@@ -317,7 +325,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>➕ নিজের Profession তৈরি করুন</span>
+              <span>{isBn ? '➕ নিজের Profession তৈরি করুন' : '➕ Create Custom Profession'}</span>
             </button>
           )}
         </div>
@@ -330,6 +338,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
               const isExpanded = expandedProfId === profItem.id;
               const standardDef = getProfessionByName(profItem.nameBn);
               const availableDefaultSkills = standardDef ? standardDef.defaultSkills : [];
+              const displayName = isBn ? (profItem.nameBn || profItem.nameEn) : (profItem.nameEn || profItem.nameBn);
 
               return (
                 <div
@@ -352,11 +361,11 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h5 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                            {profItem.nameBn}
+                            {displayName}
                           </h5>
                           {profItem.isCustom && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
-                              কাস্টম পেশা
+                              {isBn ? 'কাস্টম পেশা' : 'Custom'}
                             </span>
                           )}
                           <span
@@ -370,7 +379,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                          {profItem.skills.length} টি দক্ষতা • {profItem.yearsOfExperience || 1} বছর অভিজ্ঞতা
+                          {isBn 
+                            ? `${formatNumber(profItem.skills.length)} টি দক্ষতা • ${formatNumber(profItem.yearsOfExperience || 1)} বছর অভিজ্ঞতা`
+                            : `${profItem.skills.length} skills • ${profItem.yearsOfExperience || 1} years exp`}
                         </p>
                       </div>
                     </div>
@@ -387,10 +398,12 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                               ? 'bg-amber-400 text-slate-950 shadow-2xs'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                           }`}
-                          title={isMain ? 'প্রধান পেশা হিসেবে নির্ধারিত' : 'প্রধান পেশা নির্ধারণ করুন'}
+                          title={isBn ? (isMain ? 'প্রধান পেশা হিসেবে নির্ধারিত' : 'প্রধান পেশা নির্ধারণ করুন') : (isMain ? 'Main Profession' : 'Set as Main')}
                         >
                           <Star className={`w-3.5 h-3.5 ${isMain ? 'fill-slate-950' : ''}`} />
-                          <span className="hidden sm:inline">{isMain ? 'প্রধান পেশা' : 'প্রধান করুন'}</span>
+                          <span className="hidden sm:inline">
+                            {isBn ? (isMain ? 'প্রধান পেশা' : 'প্রধান করুন') : (isMain ? 'Main' : 'Set Main')}
+                          </span>
                         </button>
                       )}
 
@@ -399,7 +412,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                         type="button"
                         onClick={() => setExpandedProfId(isExpanded ? null : profItem.id)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                        title="দক্ষতা সম্পাদনা করুন"
+                        title={isBn ? 'দক্ষতা সম্পাদনা করুন' : 'Edit Skills'}
                       >
                         {isExpanded ? (
                           <ChevronUp className="w-4 h-4" />
@@ -414,7 +427,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                           type="button"
                           onClick={() => handleRemoveProfession(profItem.id, profItem.nameBn)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                          title="পেশা মুছে ফেলুন"
+                          title={isBn ? 'পেশা মুছে ফেলুন' : 'Remove Profession'}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -431,7 +444,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2">
                           <label className="text-xs font-bold text-slate-700">
-                            অভিজ্ঞতা (বছর):
+                            {isBn ? 'অভিজ্ঞতা (বছর):' : 'Experience (Years):'}
                           </label>
                           <input
                             type="number"
@@ -446,14 +459,18 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                           />
                         </div>
                         <span className="text-xs text-slate-500">
-                          (প্রোফাইল সার্চ রেজাল্টে অভিজ্ঞতার বছর হাইলাইট হবে)
+                          {isBn 
+                            ? '(প্রোফাইল সার্চ রেজাল্টে অভিজ্ঞতার বছর হাইলাইট হবে)' 
+                            : '(Experience years will be highlighted in search results)'}
                         </span>
                       </div>
 
                       {/* Active Skills for this Profession */}
                       <div className="space-y-2">
                         <label className="block text-xs font-bold text-slate-800">
-                          {profItem.nameBn}-এ আপনার নির্বাচিত দক্ষতাসমূহ:
+                          {isBn 
+                            ? `${displayName}-এ আপনার নির্বাচিত দক্ষতাসমূহ:` 
+                            : `Your selected skills in ${displayName}:`}
                         </label>
 
                         {profItem.skills.length > 0 ? (
@@ -470,7 +487,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                                     type="button"
                                     onClick={() => handleToggleSkillForProfession(profItem.id, skill)}
                                     className="text-slate-400 hover:text-rose-600 cursor-pointer ml-1"
-                                    title="বাদ দিন"
+                                    title={isBn ? 'বাদ দিন' : 'Remove'}
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
@@ -480,7 +497,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                           </div>
                         ) : (
                           <p className="text-xs text-slate-500 italic">
-                            কোনো নির্দিষ্ট দক্ষতা এখনও নির্বাচন করা হয়নি। নিচের প্রস্তাবিত তালিকা থেকে নির্বাচন করুন অথবা নতুন দক্ষতা লিখুন।
+                            {isBn 
+                              ? 'কোনো নির্দিষ্ট দক্ষতা এখনও নির্বাচন করা হয়নি। নিচের প্রস্তাবিত তালিকা থেকে নির্বাচন করুন অথবা নতুন দক্ষতা লিখুন।' 
+                              : 'No specific skills selected yet. Select from suggestions below or add custom skills.'}
                           </p>
                         )}
                       </div>
@@ -490,7 +509,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                         <div className="space-y-1.5 pt-1">
                           <div className="flex items-center gap-1 text-[11px] text-slate-600 font-semibold">
                             <Sparkles className="w-3 h-3 text-amber-500" />
-                            <span>এই পেশার প্রস্তাবিত সাধারণ দক্ষতাসমূহ (ক্লিক করে যোগ/বাদ দিন):</span>
+                            <span>{isBn ? 'এই পেশার প্রস্তাবিত সাধারণ দক্ষতাসমূহ (ক্লিক করে যোগ/বাদ দিন):' : 'Suggested skills for this profession (click to add/remove):'}</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {availableDefaultSkills.map((defSkill) => {
@@ -519,7 +538,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                       {!readOnly && (
                         <div className="pt-2 border-t border-slate-200">
                           <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                            ➕ নিজের Skill যোগ করুন (কাস্টম দক্ষতা):
+                            {isBn ? '➕ নিজের Skill যোগ করুন (কাস্টম দক্ষতা):' : '➕ Add Custom Skill:'}
                           </label>
                           <div className="flex gap-2 max-w-md">
                             <input
@@ -529,8 +548,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                                 setCustomSkillInputs({
                                   ...customSkillInputs,
                                   [profItem.id]: e.target.value,
-                                handwriting: e.target.value,
-                                } as any)
+                                })
                               }
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
@@ -538,11 +556,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                                   handleAddCustomSkillToProfession(profItem.id);
                                 }
                               }}
-                              placeholder={`যেমন: ${
-                                profItem.categoryMode === 'digital'
-                                  ? 'YouTube Thumbnail Design, Reels Editing'
-                                  : 'Solar Inverter Setup, ফলস সিলিং'
-                              }`}
+                              placeholder={isBn 
+                                ? (profItem.categoryMode === 'digital' ? 'যেমন: YouTube Thumbnail Design, Reels Editing' : 'যেমন: Solar Inverter Setup, ফলস সিলিং')
+                                : (profItem.categoryMode === 'digital' ? 'e.g. YouTube Thumbnail Design, Reels Editing' : 'e.g. Solar Inverter Setup, False Ceiling')}
                               className="flex-1 text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                             />
                             <button
@@ -551,7 +567,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                               disabled={!(customSkillInputs[profItem.id] || '').trim()}
                               className="px-3.5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50"
                             >
-                              + স্কিল যোগ
+                              {isBn ? '+ স্কিল যোগ' : '+ Add'}
                             </button>
                           </div>
                         </div>
@@ -565,7 +581,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
         ) : (
           <div className="p-5 text-center bg-slate-50 border border-dashed border-slate-300 rounded-2xl space-y-2">
             <p className="text-xs text-slate-600 font-medium">
-              আপনার কোনো পেশা এখনও যুক্ত করা হয়নি। নিচের তালিকা থেকে আপনার পেশা(সমূহ) নির্বাচন করুন অথবা নিজের পেশা তৈরি করুন।
+              {isBn 
+                ? 'আপনার কোনো পেশা এখনও যুক্ত করা হয়নি। নিচের তালিকা থেকে আপনার পেশা(সমূহ) নির্বাচন করুন অথবা নিজের পেশা তৈরি করুন।'
+                : 'No professions added yet. Select from the list below or create your custom profession.'}
             </p>
           </div>
         )}
@@ -579,10 +597,12 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                জনপ্রিয় পেশার তালিকা থেকে নির্বাচন করুন
+                {isBn ? 'জনপ্রিয় পেশার তালিকা থেকে নির্বাচন করুন' : 'Select from Popular Professions'}
               </h4>
               <p className="text-xs text-slate-500">
-                প্রযোজ্য সবগুলো পেশায় ক্লিক করুন (একাধিক পেশা বেছে নেওয়া যাবে)
+                {isBn 
+                  ? 'প্রযোজ্য সবগুলো পেশায় ক্লিক করুন (একাধিক পেশা বেছে নেওয়া যাবে)'
+                  : 'Click all that apply (multiple selections supported)'}
               </p>
             </div>
 
@@ -597,7 +617,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                সব
+                {isBn ? 'সব' : 'All'}
               </button>
               {categoryModes.includes('physical') && (
                 <button
@@ -637,7 +657,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="পেশা বা কাজের নাম খুঁজুন (যেমন: ইলেকট্রিশিয়ান, ভিডিও এডিটর, গ্রাফিক, প্লাম্বার)..."
+              placeholder={isBn 
+                ? 'পেশা বা কাজের নাম খুঁজুন (যেমন: ইলেকট্রিশিয়ান, ভিডিও এডিটর, গ্রাফিক, প্লাম্বার)...' 
+                : 'Search professions or jobs (e.g. Electrician, Video Editor, Plumber)...'}
               className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             />
             {searchQuery && (
@@ -657,6 +679,8 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
               const isSelected = userProfessions.some(
                 (p) => p.nameBn === prof.nameBn || p.id === prof.id
               );
+              const profName = isBn ? prof.nameBn : prof.nameEn;
+              const profDesc = isBn ? prof.descriptionBn : (prof.descriptionEn || prof.descriptionBn);
 
               return (
                 <button
@@ -672,7 +696,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                   <span className="text-xl shrink-0 mt-0.5">{prof.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold truncate">{prof.nameBn}</span>
+                      <span className="text-xs font-bold truncate">{profName}</span>
                       {isSelected ? (
                         <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
                           <Check className="w-2.5 h-2.5" />
@@ -682,7 +706,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                       )}
                     </div>
                     <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
-                      {prof.descriptionBn}
+                      {profDesc}
                     </p>
                   </div>
                 </button>

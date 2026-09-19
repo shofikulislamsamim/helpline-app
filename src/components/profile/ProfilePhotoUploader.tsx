@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Trash2, RefreshCw, AlertCircle, CheckCircle, User, Loader2 } from 'lucide-react';
 import { validateProfileImage, uploadProfilePhoto, deleteProfilePhotoFromStorage } from '../../lib/storageService';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ProfilePhotoUploaderProps {
   currentPhotoUrl?: string;
@@ -14,17 +15,20 @@ interface ProfilePhotoUploaderProps {
 export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
   currentPhotoUrl,
   userId,
-  userName = 'ব্যবহারকারী',
+  userName,
   onPhotoUploaded,
   autoSaveToProfile,
   compact = false,
 }) => {
+  const { isBn, formatNumber } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(currentPhotoUrl);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const fallbackUserName = userName || (isBn ? 'ব্যবহারকারী' : 'User');
 
   // Sync preview with incoming prop when not actively uploading
   useEffect(() => {
@@ -54,7 +58,11 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
     // Validate file
     const validation = validateProfileImage(file);
     if (!validation.isValid) {
-      setErrorMessage(validation.errorMessageBn || 'অবৈধ ফাইল ফরম্যাট বা সাইজ।');
+      setErrorMessage(
+        isBn 
+          ? (validation.errorMessageBn || 'অবৈধ ফাইল ফরম্যাট বা সাইজ।')
+          : (validation.errorMessageEn || 'Invalid file format or size.')
+      );
       return;
     }
 
@@ -86,14 +94,21 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
         deleteProfilePhotoFromStorage(currentPhotoUrl);
       }
 
-      setSuccessMessage('প্রোফাইল ছবি সফলভাবে আপলোড ও সংরক্ষণ করা হয়েছে।');
+      setSuccessMessage(
+        isBn
+          ? 'প্রোফাইল ছবি সফলভাবে আপলোড ও সংরক্ষণ করা হয়েছে।'
+          : 'Profile photo uploaded and saved successfully.'
+      );
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
       console.error('Error uploading photo:', err);
       // Revert preview to existing photo on error
       URL.revokeObjectURL(localPreview);
       setPreviewUrl(currentPhotoUrl);
-      setErrorMessage(err.message || 'ছবি আপলোড করতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।');
+      setErrorMessage(
+        err.message || 
+        (isBn ? 'ছবি আপলোড করতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।' : 'Failed to upload photo. Please try again.')
+      );
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -102,7 +117,9 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
 
   // Remove photo
   const handleRemovePhoto = async () => {
-    const confirmDelete = window.confirm('আপনি কি সত্যিই প্রোফাইল ছবি মুছে ফেলতে চান?');
+    const confirmDelete = window.confirm(
+      isBn ? 'আপনি কি সত্যিই প্রোফাইল ছবি মুছে ফেলতে চান?' : 'Are you sure you want to remove your profile photo?'
+    );
     if (!confirmDelete) return;
 
     setErrorMessage(null);
@@ -120,11 +137,11 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
         await autoSaveToProfile(undefined);
       }
 
-      setSuccessMessage('প্রোফাইল ছবি মুছে ফেলা হয়েছে।');
+      setSuccessMessage(isBn ? 'প্রোফাইল ছবি মুছে ফেলা হয়েছে।' : 'Profile photo removed.');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       console.error('Error removing photo:', err);
-      setErrorMessage('ছবি মুছতে ব্যর্থ হয়েছে। পুনরায় চেষ্টা করুন।');
+      setErrorMessage(isBn ? 'ছবি মুছতে ব্যর্থ হয়েছে। পুনরায় চেষ্টা করুন।' : 'Failed to remove photo. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -155,19 +172,19 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
             <div className="relative">
               <img
                 src={previewUrl}
-                alt={userName}
+                alt={fallbackUserName}
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-white shadow-md bg-slate-100"
               />
               {isUploading && (
                 <div className="absolute inset-0 bg-black/60 rounded-2xl flex flex-col items-center justify-center text-white p-2">
                   <Loader2 className="w-6 h-6 animate-spin text-blue-400 mb-1" />
-                  <span className="text-[11px] font-bold">{uploadProgress}%</span>
+                  <span className="text-[11px] font-bold">{formatNumber(uploadProgress)}%</span>
                 </div>
               )}
             </div>
           ) : (
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex flex-col items-center justify-center font-black text-2xl shadow-md border-2 border-white">
-              {userName ? userName.charAt(0) : <User className="w-8 h-8 opacity-80" />}
+              {fallbackUserName ? fallbackUserName.charAt(0) : <User className="w-8 h-8 opacity-80" />}
             </div>
           )}
 
@@ -176,22 +193,24 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
             type="button"
             onClick={handleOpenPicker}
             disabled={isUploading}
-            title="ছবি নির্বাচন করুন"
+            title={isBn ? 'ছবি নির্বাচন করুন' : 'Select photo'}
             className="absolute -bottom-1 -right-1 p-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-md border-2 border-white transition cursor-pointer"
           >
             <Camera className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Action Controls & Bengali Instructions */}
+        {/* Action Controls & Instructions */}
         <div className="flex-1 space-y-2 text-center sm:text-left w-full">
           <div>
             <div className="flex items-center justify-center sm:justify-start gap-1.5 font-bold text-slate-800 text-xs sm:text-sm">
               <Camera className="w-4 h-4 text-blue-600" />
-              <span>প্রোফাইল ছবি (Profile Photo)</span>
+              <span>{isBn ? 'প্রোফাইল ছবি (Profile Photo)' : 'Profile Photo'}</span>
             </div>
             <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-              সরাসরি আপনার মোবাইল বা কম্পিউটার থেকে পরিষ্কার ছবি যুক্ত করুন (JPG, PNG, WebP — সর্বোচ্চ ৫ MB)।
+              {isBn 
+                ? 'সরাসরি আপনার মোবাইল বা কম্পিউটার থেকে পরিষ্কার ছবি যুক্ত করুন (JPG, PNG, WebP — সর্বোচ্চ ৫ MB)।'
+                : 'Upload a clear photo directly from your device (JPG, PNG, WebP — max 5 MB).'}
             </p>
           </div>
 
@@ -205,8 +224,8 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
                 />
               </div>
               <p className="text-[10px] text-slate-500 flex items-center justify-between">
-                <span>ফায়ারবেস স্টোরেজে আপলোড হচ্ছে...</span>
-                <span className="font-bold text-blue-600">{uploadProgress}%</span>
+                <span>{isBn ? 'ফায়ারবেস স্টোরেজে আপলোড হচ্ছে...' : 'Uploading to Firebase Storage...'}</span>
+                <span className="font-bold text-blue-600">{formatNumber(uploadProgress)}%</span>
               </p>
             </div>
           )}
@@ -221,7 +240,7 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
                 className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
               >
                 <Upload className="w-3.5 h-3.5" />
-                <span>ছবি আপলোড করুন</span>
+                <span>{isBn ? 'ছবি আপলোড করুন' : 'Upload Photo'}</span>
               </button>
             ) : (
               <>
@@ -232,7 +251,7 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
                   className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-700 text-xs font-bold border border-blue-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>ছবি পরিবর্তন করুন</span>
+                  <span>{isBn ? 'ছবি পরিবর্তন করুন' : 'Change Photo'}</span>
                 </button>
                 <button
                   type="button"
@@ -241,7 +260,7 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
                   className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 text-xs font-bold border border-rose-200 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>ছবি মুছে ফেলুন</span>
+                  <span>{isBn ? 'ছবি মুছে ফেলুন' : 'Remove Photo'}</span>
                 </button>
               </>
             )}
@@ -249,7 +268,7 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
         </div>
       </div>
 
-      {/* Bengali Error Message */}
+      {/* Error Message */}
       {errorMessage && (
         <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-800 flex items-start gap-2 animate-in fade-in">
           <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />

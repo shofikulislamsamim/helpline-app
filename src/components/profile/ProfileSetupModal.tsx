@@ -35,6 +35,7 @@ import { ProfessionSkillsManager } from './ProfessionSkillsManager';
 import { calculateProfileCompletion } from '../../lib/profileHelpers';
 import { buildNormalizedSearchKeywords } from '../../lib/searchNormalization';
 import { getProfessionByName } from '../../lib/professionsData';
+import { useLanguage } from '../../context/LanguageContext';
 import { 
   CapabilityType, 
   PresentAddress, 
@@ -56,6 +57,7 @@ interface ProfileSetupModalProps {
 
 export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, onClose }) => {
   const { userProfile, updateProfile } = useAuth();
+  const { isBn, formatNumber } = useLanguage();
 
   const [activeStep, setActiveStep] = useState<number>(1);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState<boolean>(false);
@@ -332,15 +334,15 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
   const completion = calculateProfileCompletion(previewProfileObj);
 
   const steps = [
-    { id: 1, title: 'বেসিক তথ্য', icon: User },
-    { id: 2, title: 'বর্তমান ঠিকানা', icon: MapPin },
-    { id: 3, title: 'কী করতে চান', icon: Briefcase },
-    { id: 4, title: 'পেশা ও দক্ষতা', icon: Wrench },
-    { id: 5, title: 'সার্ভিস ও রেট', icon: CreditCard },
-    { id: 6, title: 'কাজের ইতিহাস', icon: Clock },
-    { id: 7, title: 'কর্ম এলাকা', icon: Navigation },
-    { id: 8, title: 'পোর্টফোলিও', icon: ImageIcon },
-    { id: 9, title: 'গোপনীয়তা', icon: Lock },
+    { id: 1, title: isBn ? 'বেসিক তথ্য' : 'Basic Info', icon: User },
+    { id: 2, title: isBn ? 'বর্তমান ঠিকানা' : 'Address', icon: MapPin },
+    { id: 3, title: isBn ? 'কী করতে চান' : 'Capabilities', icon: Briefcase },
+    { id: 4, title: isBn ? 'পেশা ও দক্ষতা' : 'Professions & Skills', icon: Wrench },
+    { id: 5, title: isBn ? 'সার্ভিস ও রেট' : 'Services & Rates', icon: CreditCard },
+    { id: 6, title: isBn ? 'কাজের ইতিহাস' : 'Work History', icon: Clock },
+    { id: 7, title: isBn ? 'কর্ম এলাকা' : 'Service Area', icon: Navigation },
+    { id: 8, title: isBn ? 'পোর্টফোলিও' : 'Portfolio', icon: ImageIcon },
+    { id: 9, title: isBn ? 'গোপনীয়তা' : 'Privacy', icon: Lock },
   ];
 
   return (
@@ -363,11 +365,13 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
               <Sparkles className="w-4 h-4" />
             </span>
             <h2 className="text-base sm:text-lg font-bold text-white">
-              আপনার প্রোফাইল সম্পাদনা (Main Profile Setup)
+              {isBn ? 'আপনার প্রোফাইল সম্পাদনা (Main Profile Setup)' : 'Profile Setup & Customization'}
             </h2>
           </div>
           <p className="text-xs text-slate-300">
-            ১৮টি সমন্বিত সেকশনের মাধ্যমে আপনার মূল প্রোফাইল নির্ভুলভাবে সাজান।
+            {isBn 
+              ? '১৮টি সমন্বিত সেকশনের মাধ্যমে আপনার মূল প্রোফাইল নির্ভুলভাবে সাজান।' 
+              : 'Organize your complete professional profile with all integrated sections.'}
           </p>
 
           {/* Progress bar in header */}
@@ -379,7 +383,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
               />
             </div>
             <span className="text-xs font-bold text-blue-400 shrink-0">
-              {completion.percentage}% সম্পন্ন
+              {formatNumber(completion.percentage)}% {isBn ? 'সম্পন্ন' : 'Complete'}
             </span>
           </div>
 
@@ -417,10 +421,12 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                 <CheckCircle className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-bold text-slate-900">
-                প্রোফাইল সফলভাবে সংরক্ষিত হয়েছে!
+                {isBn ? 'প্রোফাইল সফলভাবে সংরক্ষিত হয়েছে!' : 'Profile Saved Successfully!'}
               </h3>
               <p className="text-xs text-slate-500 max-w-sm">
-                আপনার দেওয়া সমস্ত তথ্য সফলভাবে আপডেট হয়েছে। এখন থেকে গ্রাহক ও নিয়োগকারীরা আপনাকে আরও সহজে খুঁজে পাবেন।
+                {isBn
+                  ? 'আপনার দেওয়া সমস্ত তথ্য সফলভাবে আপডেট হয়েছে। এখন থেকে গ্রাহক ও নিয়োগকারীরা আপনাকে আরও সহজে খুঁজে পাবেন।'
+                  : 'All your profile details have been saved. Clients and hirers will now be able to find and contact you easily.'}
               </p>
             </div>
           ) : (
@@ -431,9 +437,11 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <User className="w-4 h-4 text-blue-600" />
-                      <span>১. বেসিক তথ্য ও প্রোফাইল ছবি</span>
+                      <span>{isBn ? '১. বেসিক তথ্য ও প্রোফাইল ছবি' : '1. Basic Info & Profile Photo'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ১ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(1)} / ৯` : 'Step 1 of 9'}
+                    </span>
                   </div>
 
                   {/* Profile Photo Direct Upload */}
@@ -448,28 +456,28 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        আপনার পূর্ণ নাম (বাংলা বা ইংরেজিতে) *
+                        {isBn ? 'আপনার পূর্ণ নাম (বাংলা বা ইংরেজিতে) *' : 'Full Name (Bangla or English) *'}
                       </label>
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="যেমন: মো: আরিফুল ইসলাম"
+                        placeholder={isBn ? 'যেমন: মো: আরিফুল ইসলাম' : 'e.g. Md. Ariful Islam'}
                         className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        মোবাইল নম্বর (লগইন ও যোগাযোগের জন্য) *
+                        {isBn ? 'মোবাইল নম্বর (লগইন ও যোগাযোগের জন্য) *' : 'Mobile Number (Login & Contact) *'}
                       </label>
                       <input
                         type="tel"
                         required
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="০১৭xxxxxxxx"
+                        placeholder="017xxxxxxxx"
                         className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -478,7 +486,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      ইমেইল ঠিকানা (ঐচ্ছিক)
+                      {isBn ? 'ইমেইল ঠিকানা (ঐচ্ছিক)' : 'Email Address (Optional)'}
                     </label>
                     <input
                       type="email"
@@ -492,13 +500,13 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   {/* Bio */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      সংক্ষিপ্ত বিবরণ / পরিচিতি (Bio)
+                      {isBn ? 'সংক্ষিপ্ত বিবরণ / পরিচিতি (Bio)' : 'Bio / Short Introduction'}
                     </label>
                     <textarea
                       rows={3}
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
-                      placeholder="নিজের কাজ, অভিজ্ঞতা ও কাজের ধরন সম্পর্কে ২-৩ বাক্যে লিখুন..."
+                      placeholder={isBn ? 'নিজের কাজ, অভিজ্ঞতা ও কাজের ধরন সম্পর্কে ২-৩ বাক্যে লিখুন...' : 'Write 2-3 sentences about your expertise, experience, and service approach...'}
                       className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -511,20 +519,24 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-emerald-600" />
-                      <span>২. বর্তমান ঠিকানা ও অবস্থান (Present Address)</span>
+                      <span>{isBn ? '২. বর্তমান ঠিকানা ও অবস্থান (Present Address)' : '2. Present Address & Location'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ২ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(2)} / ৯` : 'Step 2 of 9'}
+                    </span>
                   </div>
 
                   <p className="text-xs text-slate-500">
-                    বাংলাদেশি প্রশাসনিক কাঠামো অনুসারে সঠিক ঠিকানা নির্বাচন করুন:
+                    {isBn 
+                      ? 'বাংলাদেশি প্রশাসনিক কাঠামো অনুসারে সঠিক ঠিকানা নির্বাচন করুন:' 
+                      : 'Select your administrative location in Bangladesh:'}
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* Division */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        বিভাগ *
+                        {isBn ? 'বিভাগ *' : 'Division *'}
                       </label>
                       <select
                         value={division}
@@ -533,7 +545,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                       >
                         {BD_GEO_DATA.map((d) => (
                           <option key={d.nameBn} value={d.nameBn}>
-                            {d.nameBn}
+                            {isBn ? d.nameBn : d.nameEn}
                           </option>
                         ))}
                       </select>
@@ -542,7 +554,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                     {/* District */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        জেলা *
+                        {isBn ? 'জেলা *' : 'District *'}
                       </label>
                       <select
                         value={district}
@@ -551,7 +563,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                       >
                         {getDistrictsByDivision(division).map((d) => (
                           <option key={d.nameBn} value={d.nameBn}>
-                            {d.nameBn}
+                            {isBn ? d.nameBn : d.nameEn}
                           </option>
                         ))}
                       </select>
@@ -560,7 +572,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                     {/* Upazila */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        উপজেলা / থানা *
+                        {isBn ? 'উপজেলা / থানা *' : 'Upazila / Thana *'}
                       </label>
                       <select
                         value={upazila}
@@ -579,26 +591,26 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        ইউনিয়ন বা ওয়ার্ড নম্বর
+                        {isBn ? 'ইউনিয়ন বা ওয়ার্ড নম্বর' : 'Union or Ward Number'}
                       </label>
                       <input
                         type="text"
                         value={unionWard}
                         onChange={(e) => setUnionWard(e.target.value)}
-                        placeholder="যেমন: ওয়ার্ড নং ০৭ বা পাইকপাড়া ইউনিয়ন"
+                        placeholder={isBn ? 'যেমন: ওয়ার্ড নং ০৭ বা পাইকপাড়া ইউনিয়ন' : 'e.g. Ward No. 7 or Paikpara Union'}
                         className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        এলাকা / মহল্লা / রোড
+                        {isBn ? 'এলাকা / মহল্লা / রোড' : 'Area / Neighborhood / Road'}
                       </label>
                       <input
                         type="text"
                         value={areaRoad}
                         onChange={(e) => setAreaRoad(e.target.value)}
-                        placeholder="যেমন: ব্লক-সি, রোড নং ৪, মিরপুর ১০"
+                        placeholder={isBn ? 'যেমন: ব্লক-সি, রোড নং ৪, মিরপুর ১০' : 'e.g. Block C, Road 4, Mirpur 10'}
                         className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -607,13 +619,13 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   {/* Full Address details */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      সম্পূর্ণ ঠিকানা (বাসা / হোল্ডিং নং সহ বিস্তারিত)
+                      {isBn ? 'সম্পূর্ণ ঠিকানা (বাসা / হোল্ডিং নং সহ বিস্তারিত)' : 'Full Address (House / Holding No. & Details)'}
                     </label>
                     <textarea
                       rows={2}
                       value={fullAddress}
                       onChange={(e) => setFullAddress(e.target.value)}
-                      placeholder="বাড়ি নং ১২/এ, রোড নং ৩, ব্লক-বি, মিরপুর, ঢাকা"
+                      placeholder={isBn ? 'বাড়ি নং ১২/এ, রোড নং ৩, ব্লক-বি, মিরপুর, ঢাকা' : 'House 12/A, Road 3, Block B, Mirpur, Dhaka'}
                       className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -631,18 +643,25 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-blue-600" />
-                      <span>৩. আপনি হেল্পলাইনে কী কী করতে চান? (Capabilities)</span>
+                      <span>{isBn ? '৩. আপনি হেল্পলাইনে কী কী করতে চান? (Capabilities)' : '3. What do you want to do on HelpLine? (Capabilities)'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ৩ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(3)} / ৯` : 'Step 3 of 9'}
+                    </span>
                   </div>
 
                   <p className="text-xs text-slate-500">
-                    HelpLine-এ একটি প্রোফাইল দিয়েই আপনি যেকোনো সুযোগ গ্রহণ করতে পারবেন। প্রযোজ্য সবগুলো নির্বাচন করুন:
+                    {isBn 
+                      ? 'HelpLine-এ একটি প্রোফাইল দিয়েই আপনি যেকোনো সুযোগ গ্রহণ করতে পারবেন। প্রযোজ্য সবগুলো নির্বাচন করুন:' 
+                      : 'With one HelpLine account, you can access multiple roles and services. Select all that apply:'}
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {CAPABILITIES_LIST.map((cap) => {
                       const isSelected = selectedCapabilities.includes(cap.id);
+                      const title = isBn ? cap.titleBn : (cap.titleEn || cap.titleBn);
+                      const subtitle = isBn ? cap.subtitleBn : (cap.subtitleEn || cap.subtitleBn);
+
                       return (
                         <div
                           key={cap.id}
@@ -656,7 +675,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                           <span className="text-2xl shrink-0 mt-0.5">{cap.icon}</span>
                           <div className="space-y-0.5 flex-1">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-xs text-slate-900">{cap.titleBn}</h4>
+                              <h4 className="font-bold text-xs text-slate-900">{title}</h4>
                               <input
                                 type="checkbox"
                                 checked={isSelected}
@@ -664,7 +683,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                                 className="w-4 h-4 text-blue-600 rounded cursor-pointer"
                               />
                             </div>
-                            <p className="text-[11px] text-slate-500">{cap.subtitleBn}</p>
+                            <p className="text-[11px] text-slate-500">{subtitle}</p>
                           </div>
                         </div>
                       );
@@ -679,9 +698,11 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <Wrench className="w-4 h-4 text-blue-600" />
-                      <span>৪. পেশাসমূহ ও কাজের দক্ষতা (Professions & Skills)</span>
+                      <span>{isBn ? '৪. পেশাসমূহ ও কাজের দক্ষতা (Professions & Skills)' : '4. Professions & Skills'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ৪ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(4)} / ৯` : 'Step 4 of 9'}
+                    </span>
                   </div>
 
                   <ProfessionSkillsManager
@@ -701,9 +722,11 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <CreditCard className="w-4 h-4 text-emerald-600" />
-                      <span>৫. সেবার ধরন ও মূল্য নির্ধারণ (Service Delivery & Pricing)</span>
+                      <span>{isBn ? '৫. সেবার ধরন ও মূল্য নির্ধারণ (Service Delivery & Pricing)' : '5. Service Delivery & Pricing'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ৫ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(5)} / ৯` : 'Step 5 of 9'}
+                    </span>
                   </div>
 
                   {/* Service Delivery Types */}
@@ -728,16 +751,18 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <Clock className="w-4 h-4 text-blue-600" />
-                      <span>৬. কাজের অভিজ্ঞতা ও ইতিহাস (Work Experience & History)</span>
+                      <span>{isBn ? '৬. কাজের অভিজ্ঞতা ও ইতিহাস (Work Experience & History)' : '6. Work Experience & History'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ৬ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(6)} / ৯` : 'Step 6 of 9'}
+                    </span>
                   </div>
 
                   {/* Per Profession Experience */}
                   {selectedProfessions.length > 0 ? (
                     <div className="space-y-3">
                       <h4 className="text-xs font-bold text-slate-800">
-                        নির্বাচিত পেশাগুলোতে আপনার অভিজ্ঞতার বছর:
+                        {isBn ? 'নির্বাচিত পেশাগুলোতে আপনার অভিজ্ঞতার বছর:' : 'Years of experience in your selected professions:'}
                       </h4>
 
                       {selectedProfessions.map((prof) => {
@@ -750,7 +775,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                             <div className="flex items-center justify-between">
                               <span className="font-bold text-xs text-slate-900">{prof}</span>
                               <div className="flex items-center gap-2 text-xs">
-                                <span className="text-slate-600">অভিজ্ঞতা:</span>
+                                <span className="text-slate-600">{isBn ? 'অভিজ্ঞতা:' : 'Experience:'}</span>
                                 <input
                                   type="number"
                                   min="0"
@@ -765,7 +790,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                                   }}
                                   className="w-16 p-1 text-xs border border-slate-300 rounded bg-white text-center font-bold"
                                 />
-                                <span className="text-slate-600 font-medium">বছর</span>
+                                <span className="text-slate-600 font-medium">{isBn ? 'বছর' : 'Years'}</span>
                               </div>
                             </div>
                             <input
@@ -778,7 +803,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                                   return [...filtered, { profession: prof, years: currentYears, description: val }];
                                 });
                               }}
-                              placeholder="এই কাজের বিশেষত্ব (যেমন: ১০ তলা ভবনের মেইন ওয়্যারিং)"
+                              placeholder={isBn ? 'এই কাজের বিশেষত্ব (যেমন: ১০ তলা ভবনের মেইন ওয়্যারিং)' : 'Specialization (e.g. 10-story building main wiring)'}
                               className="w-full text-xs p-2 rounded-lg border border-slate-300 bg-white"
                             />
                           </div>
@@ -787,7 +812,9 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                     </div>
                   ) : (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-                      পূর্ববর্তী ধাপে কোনো পেশা নির্বাচন করা হয়নি। কাজের মানুষ হিসেবে প্রোফাইল করতে চাইলে ধাপ ৪ এ পেশা যুক্ত করুন।
+                      {isBn 
+                        ? 'পূর্ববর্তী ধাপে কোনো পেশা নির্বাচন করা হয়নি। কাজের মানুষ হিসেবে প্রোফাইল করতে চাইলে ধাপ ৪ এ পেশা যুক্ত করুন।' 
+                        : 'No professions selected in previous steps. Please add professions in Step 4 to configure experience.'}
                     </div>
                   )}
 
@@ -805,15 +832,17 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <Navigation className="w-4 h-4 text-blue-600" />
-                      <span>৭. কর্ম এলাকা ও সার্চ কিওয়ার্ডস (Service Area & Search)</span>
+                      <span>{isBn ? '৭. কর্ম এলাকা ও সার্চ কিওয়ার্ডস (Service Area & Search)' : '7. Service Area & Search Keywords'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ৭ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(7)} / ৯` : 'Step 7 of 9'}
+                    </span>
                   </div>
 
                   {/* Service Area Section */}
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-slate-800">
-                      "আমি যেসব এলাকায় কাজ করি" — সেবা প্রদানের এলাকা:
+                      {isBn ? '"আমি যেসব এলাকায় কাজ করি" — সেবা প্রদানের এলাকা:' : '"Areas Where I Offer Service" — Working Coverage:'}
                     </h4>
 
                     {/* Active Service Area Chips */}
@@ -828,7 +857,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                           <button
                             type="button"
                             onClick={() => removeServiceArea(area)}
-                            className="text-blue-700 hover:text-red-600 font-bold ml-1 transition"
+                            className="text-blue-700 hover:text-red-600 font-bold ml-1 transition cursor-pointer"
                           >
                             ×
                           </button>
@@ -842,26 +871,28 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                         type="text"
                         value={newAreaInput}
                         onChange={(e) => setNewAreaInput(e.target.value)}
-                        placeholder="যেমন: মিরপুর ১০, উত্তরা সেক্টর ৩, ধানমন্ডি"
+                        placeholder={isBn ? 'যেমন: মিরপুর ১০, উত্তরা সেক্টর ৩, ধানমন্ডি' : 'e.g. Mirpur 10, Uttara Sector 3, Dhanmondi'}
                         className="flex-1 text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       />
                       <button
                         type="submit"
                         className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
                       >
-                        + এলাকা যোগ করুন
+                        {isBn ? '+ এলাকা যোগ করুন' : '+ Add Area'}
                       </button>
                     </form>
 
                     {/* Quick Suggestions based on upazila */}
                     <div className="pt-2 text-xs text-slate-500">
-                      <span className="font-semibold text-slate-700">প্রস্তাবিত এলাকা:</span>
+                      <span className="font-semibold text-slate-700">
+                        {isBn ? 'প্রস্তাবিত এলাকা:' : 'Suggested Areas:'}
+                      </span>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {[
-                          `${upazila} সম্পূর্ণ`,
-                          `${district} সদর`,
-                          'আশেপাশের ৫ কিমি ব্যাসার্ধ',
-                          'সমগ্র মেট্রোপলিটন এলাকা',
+                          isBn ? `${upazila} সম্পূর্ণ` : `All of ${upazila}`,
+                          isBn ? `${district} সদর` : `${district} Sadar`,
+                          isBn ? 'আশেপাশের ৫ কিমি ব্যাসার্ধ' : 'Within 5 km radius',
+                          isBn ? 'সমগ্র মেট্রোপলিটন এলাকা' : 'Entire Metropolitan Area',
                         ].map((sug, i) => (
                           <button
                             key={i}
@@ -898,9 +929,11 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <ImageIcon className="w-4 h-4 text-purple-600" />
-                      <span>৮. পোর্টফোলিও ও কাজের নমুনা (Portfolio)</span>
+                      <span>{isBn ? '৮. পোর্টফোলিও ও কাজের নমুনা (Portfolio)' : '8. Portfolio & Work Samples'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ৮ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(8)} / ৯` : 'Step 8 of 9'}
+                    </span>
                   </div>
 
                   <PortfolioSection
@@ -917,9 +950,11 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                       <Lock className="w-4 h-4 text-purple-600" />
-                      <span>৯. ব্যক্তিগত তথ্যের গোপনীয়তা নিয়ন্ত্রণ (Privacy Settings)</span>
+                      <span>{isBn ? '৯. ব্যক্তিগত তথ্যের গোপনীয়তা নিয়ন্ত্রণ (Privacy Settings)' : '9. Privacy & Visibility Settings'}</span>
                     </h3>
-                    <span className="text-[11px] text-slate-500">ধাপ ৯ / ৯</span>
+                    <span className="text-[11px] text-slate-500">
+                      {isBn ? `ধাপ ${formatNumber(9)} / ৯` : 'Step 9 of 9'}
+                    </span>
                   </div>
 
                   <PrivacySettingsSection
@@ -942,7 +977,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                 className="px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 rounded-xl transition flex items-center gap-1 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span>পূর্ববর্তী ধাপ</span>
+                <span>{isBn ? 'পূর্ববর্তী ধাপ' : 'Previous'}</span>
               </button>
             ) : (
               <button
@@ -950,7 +985,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                 onClick={onClose}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer"
               >
-                পরে পূরণ করব
+                {isBn ? 'পরে পূরণ করব' : 'Skip for now'}
               </button>
             )}
 
@@ -961,7 +996,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   onClick={() => setActiveStep(activeStep + 1)}
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  <span>পরবর্তী ধাপ</span>
+                  <span>{isBn ? 'পরবর্তী ধাপ' : 'Next Step'}</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               ) : (
@@ -972,7 +1007,11 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                   className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  <span>{saveLoading ? 'সংরক্ষণ হচ্ছে...' : 'প্রোফাইল সংরক্ষণ ও সম্পন্ন করুন'}</span>
+                  <span>
+                    {saveLoading
+                      ? (isBn ? 'সংরক্ষণ হচ্ছে...' : 'Saving...')
+                      : (isBn ? 'প্রোফাইল সংরক্ষণ ও সম্পন্ন করুন' : 'Save & Complete Profile')}
+                  </span>
                 </button>
               )}
             </div>
