@@ -252,10 +252,15 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
       : activeProfessions[0]?.nameBn || '';
 
     // Build comprehensive normalized search keywords (synonyms, phonetic tokens, bangla & english)
+    const suggestedProfessionKeywords = activeProfessions.flatMap((prof) => {
+      const def = getProfessionByName(prof.nameBn);
+      return def?.suggestedKeywords || [];
+    });
     const allKeywordsForNormalization = [
       ...selectedKeywords,
       ...derivedProfessions,
       ...derivedSkills,
+      ...suggestedProfessionKeywords,
       ...serviceAreas,
       upazila,
       district,
