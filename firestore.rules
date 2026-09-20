@@ -116,15 +116,29 @@ service cloud.firestore {
 
     // Marketplace collections
     match /serviceRequests/{id} {
-      allow read: if true;
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        request.auth.uid == resource.data.customerId || 
-        request.auth.uid == resource.data.workerId || 
-        request.auth.uid == resource.data.creatorId || 
+      // Requests contain phone numbers, exact work addresses and other private job details.
+      // Only the customer, assigned worker, or an admin may read them.
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.customerId ||
+        request.auth.uid == resource.data.workerId ||
+        request.auth.uid == resource.data.creatorId ||
         isAdmin()
       );
-      allow delete: if isAdmin() || (isAuthenticated() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.creatorId));
+      // A request must be created by its customer/creator, never on behalf of another user.
+      allow create: if isAuthenticated() && (
+        request.auth.uid == request.resource.data.customerId ||
+        request.auth.uid == request.resource.data.creatorId
+      );
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.customerId ||
+        request.auth.uid == resource.data.workerId ||
+        request.auth.uid == resource.data.creatorId ||
+        isAdmin()
+      );
+      allow delete: if isAdmin() || (isAuthenticated() && (
+        request.auth.uid == resource.data.customerId ||
+        request.auth.uid == resource.data.creatorId
+      ));
     }
 
     match /jobs/{id} {
