@@ -1,3 +1,9 @@
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
+
 let mapsPromise: Promise<typeof window.google> | null = null;
 
 export function getGoogleMapsApiKey(): string {
