@@ -17,6 +17,7 @@ import { PoliciesPage } from './pages/PoliciesPage';
 import { AdminPage } from './pages/AdminPage';
 import { HirePage } from './pages/HirePage';
 import { WorkInboxPage } from './pages/WorkInboxPage';
+import { LiveTrackingManager } from './components/hire/LiveTrackingManager';
 import { ModuleId } from './types';
 
 function MainApp() {
@@ -271,6 +272,7 @@ export default function App() {
       <AuthProvider>
         <AppSettingsProvider>
           <HireProvider>
+            <LiveTrackingManager />
             <MainApp />
           </HireProvider>
         </AppSettingsProvider>
