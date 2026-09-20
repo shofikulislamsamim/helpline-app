@@ -163,6 +163,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
     userProfile.serviceAreas || []
   );
   const [newAreaInput, setNewAreaInput] = useState<string>('');
+  const [isOnline, setIsOnline] = useState<boolean>(userProfile.isOnline ?? false);
 
   // Portfolio
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>(
@@ -299,6 +300,8 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
       experiences: constructedExp,
       workHistories,
       serviceAreas,
+      isOnline,
+      availabilityUpdatedAt: new Date().toISOString(),
       portfolio,
       pricing,
       privacySettings,
@@ -897,8 +900,8 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                         {[
                           isBn ? `${upazila} সম্পূর্ণ` : `All of ${upazila}`,
                           isBn ? `${district} সদর` : `${district} Sadar`,
-                          isBn ? 'আশেপাশের ৫ কিমি ব্যাসার্ধ' : 'Within 5 km radius',
-                          isBn ? 'সমগ্র মেট্রোপলিটন এলাকা' : 'Entire Metropolitan Area',
+                          isBn ? `${upazila} ও আশেপাশের এলাকা` : `${upazila} and nearby areas`,
+                          isBn ? `${district} জেলার মধ্যে` : `Within ${district} district`,
                         ].map((sug, i) => (
                           <button
                             key={i}
@@ -915,6 +918,33 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
                         ))}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Availability Section */}
+                  <div className="border-t border-slate-200 pt-4 space-y-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800">
+                        {isBn ? 'কাজের জন্য আপনার বর্তমান Availability' : 'Your Current Work Availability'}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        {isBn ? 'আপনি এখন নতুন কাজ নেওয়ার জন্য প্রস্তুত কি না তা জানান।' : 'Let people know whether you are currently available for new work.'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsOnline((value) => !value)}
+                      aria-pressed={isOnline}
+                      className={`w-full sm:w-auto flex items-center justify-between gap-4 px-4 py-3 rounded-xl border transition cursor-pointer ${isOnline ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}
+                    >
+                      <div className="flex items-center gap-3 text-left">
+                        <span className={`w-3 h-3 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        <span>
+                          <span className="block text-xs font-bold text-slate-900">{isOnline ? (isBn ? 'এখন কাজের জন্য Available' : 'Available for work') : (isBn ? 'এখন কাজের জন্য Available নই' : 'Not currently available')}</span>
+                          <span className="block text-[11px] text-slate-500 mt-0.5">{isBn ? 'প্রোফাইলে এই স্ট্যাটাস দেখানো হতে পারে।' : 'This status may be shown on your profile.'}</span>
+                        </span>
+                      </div>
+                      <span className={`text-[11px] font-bold ${isOnline ? 'text-emerald-700' : 'text-slate-500'}`}>{isOnline ? (isBn ? 'চালু' : 'ON') : (isBn ? 'বন্ধ' : 'OFF')}</span>
+                    </button>
                   </div>
 
                   {/* Search Keywords Section */}
