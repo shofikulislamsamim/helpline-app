@@ -19,7 +19,7 @@ import {
 } from '../lib/hireData';
 import { calculateServiceFee } from '../lib/feeCalculator';
 import { useAuth } from './AuthContext';
-import { doc, setDoc, getDocs, collection, updateDoc, addDoc } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, updateDoc, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 interface CreateHireRequestParams {
@@ -270,12 +270,30 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const fetchFirestoreRequests = async () => {
       try {
-        const snap = await getDocs(collection(db, 'serviceRequests'));
-        if (!snap.empty) {
-          const list: HireRequest[] = [];
-          snap.forEach((doc) => {
-            list.push({ ...(doc.data() as HireRequest), id: doc.id });
-          });
+        if (!userProfile?.userId) return;
+
+        // Service requests contain private contact/location details.
+        // Only fetch requests where the signed-in user is a participant.
+        const [customerSnap, workerSnap] = await Promise.all([
+          getDocs(query(
+            collection(db, 'serviceRequests'),
+            where('customerId', '==', userProfile.userId)
+          )),
+          getDocs(query(
+            collection(db, 'serviceRequests'),
+            where('workerId', '==', userProfile.userId)
+          )),
+        ]);
+
+        const list: HireRequest[] = [];
+        const seen = new Set<string>();
+        [...customerSnap.docs, ...workerSnap.docs].forEach((docSnap) => {
+          if (seen.has(docSnap.id)) return;
+          seen.add(docSnap.id);
+          list.push({ ...(docSnap.data() as HireRequest), id: docSnap.id });
+        });
+
+        if (list.length > 0) {
           // Merge with existing requests without losing state
           setHireRequests((prev) => {
             const map = new Map<string, HireRequest>();
@@ -290,7 +308,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
     fetchFirestoreRequests();
-  }, []);
+  }, [userProfile?.userId]);
 
   const updateAdminSettings = (newSettings: Partial<HireAdminSettings>) => {
     setAdminSettings((prev) => ({ ...prev, ...newSettings }));
