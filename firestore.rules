@@ -168,6 +168,15 @@ service cloud.firestore {
               request.resource.data.status == 'ON_THE_WAY' &&
               request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
             ) ||
+
+            // Worker may update only the private live-tracking payload while travelling or finishing the visit.
+            // The customer can read it because serviceRequests are participant-private.
+            (
+              request.auth.uid == resource.data.workerId &&
+              resource.data.status in ['ON_THE_WAY', 'WORK_STARTED'] &&
+              request.resource.data.status == resource.data.status &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tracking'])
+            ) ||
             (
               request.auth.uid == resource.data.workerId &&
               resource.data.status in ['ACCEPTED', 'ON_THE_WAY'] &&
