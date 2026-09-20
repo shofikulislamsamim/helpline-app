@@ -190,6 +190,7 @@ export interface VerificationAuditLog {
 export interface AppNotification {
   id: string;
   recipientId: string;
+  senderId?: string;
   titleBn: string;
   messageBn: string;
   type: 'verification' | 'system' | 'order' | 'general' | 'chat' | 'hire_request' | 'quote' | 'job_status' | 'commission';
