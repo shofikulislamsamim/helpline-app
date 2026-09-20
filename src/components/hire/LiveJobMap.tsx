@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ExternalLink, Loader2, MapPin, Navigation, Radio, Route as RouteIcon, ShieldCheck } from 'lucide-react';
+import { ExternalLink, Loader2, MapPin, Navigation, Radio, ShieldCheck } from 'lucide-react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { HireRequest } from '../../types';
 import { db } from '../../lib/firebase';
@@ -277,7 +277,7 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
 
       {mapError && (
         <div className="px-3 pb-3 text-[11px] text-amber-700 flex items-center gap-1.5">
-          <RouteIcon className="w-3.5 h-3.5" /> {mapError}
+          <Navigation className="w-3.5 h-3.5" /> {mapError}
         </div>
       )}
 
