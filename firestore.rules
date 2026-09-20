@@ -293,7 +293,27 @@ service cloud.firestore {
     // Reviews and Complaints
     match /reviews/{id} {
       allow read: if true;
-      allow create: if isAuthenticated();
+
+      // One review per completed hire request. The document ID must equal
+      // the hire request ID so a second review cannot be created for the same job.
+      allow create: if isAuthenticated() &&
+        id == request.resource.data.hireRequestId &&
+        request.resource.data.reviewerId == request.auth.uid &&
+        request.resource.data.rating is int &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        request.resource.data.comment is string &&
+        request.resource.data.comment.size() <= 1000 &&
+        request.resource.data.revieweeId == get(
+          /databases/$(database)/documents/serviceRequests/$(request.resource.data.hireRequestId)
+        ).data.workerId &&
+        request.auth.uid == get(
+          /databases/$(database)/documents/serviceRequests/$(request.resource.data.hireRequestId)
+        ).data.customerId &&
+        get(
+          /databases/$(database)/documents/serviceRequests/$(request.resource.data.hireRequestId)
+        ).data.status == 'WORK_COMPLETED';
+
       allow update, delete: if isAdmin();
     }
     match /complaints/{id} {
