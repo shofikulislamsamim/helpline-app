@@ -601,13 +601,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Custom category request local save note:', err);
     }
 
-    // Immediately enable this custom profession on user's own profile
-    const existing = userProfile.professions || [];
-    if (!existing.includes(nameBn)) {
-      await updateProfile({
-        professions: [...existing, nameBn],
-      });
-    }
   };
 
   const updateProfile = async (updated: Partial<UserProfile>) => {
