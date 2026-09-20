@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Briefcase, Plus, Trash2, Calendar, MapPin, Pencil, X } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Calendar, MapPin, Pencil } from 'lucide-react';
 import { WorkHistory } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -32,9 +32,9 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
   };
 
   const parseDateValue = (value: string, isEnd = false): number | null => {
-    const text = value.trim().toLowerCase();
+    const text = value.trim().toLowerCase().replace(/[০-৯]/g, (digit) => String('০১২৩৪৫৬৭৮৯'.indexOf(digit)));
     if (!text || text === 'present' || text === 'চলমান') return isEnd ? new Date().getFullYear() : null;
-    const match = text.match(/(20\\d{2}|19\\d{2})/);
+    const match = text.match(/(20\d{2}|19\d{2})/);
     return match ? Number(match[1]) : null;
   };
 
@@ -58,7 +58,7 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
     }
 
     const newRecord: WorkHistory = {
-      id: `wh-${Date.now()}`,
+      id: editingId || `wh-${Date.now()}`,
       company: company.trim(),
       position: position.trim(),
       startDate: startDate.trim(),
