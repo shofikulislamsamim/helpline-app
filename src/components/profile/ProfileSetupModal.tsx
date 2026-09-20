@@ -72,16 +72,16 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
   const [bio, setBio] = useState(userProfile.bio || '');
 
   // Address
-  const [division, setDivision] = useState(userProfile.presentAddress?.division || 'ঢাকা');
-  const [district, setDistrict] = useState(userProfile.presentAddress?.district || 'ঢাকা');
-  const [upazila, setUpazila] = useState(userProfile.presentAddress?.upazila || 'মিরপুর');
+  const [division, setDivision] = useState(userProfile.presentAddress?.division || '');
+  const [district, setDistrict] = useState(userProfile.presentAddress?.district || '');
+  const [upazila, setUpazila] = useState(userProfile.presentAddress?.upazila || '');
   const [unionWard, setUnionWard] = useState(userProfile.presentAddress?.unionWard || '');
   const [areaRoad, setAreaRoad] = useState(userProfile.presentAddress?.areaRoad || '');
   const [fullAddress, setFullAddress] = useState(userProfile.presentAddress?.fullAddress || '');
 
   // Capabilities
   const [selectedCapabilities, setSelectedCapabilities] = useState<CapabilityType[]>(
-    userProfile.capabilities || userProfile.roles || ['customer', 'worker']
+    userProfile.capabilities || userProfile.roles || []
   );
 
   // Service Category Modes (Physical, Digital, or Both)
@@ -108,7 +108,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
           categoryMode: standardDef?.categoryMode || 'physical',
           isCustom: !standardDef,
           skills: standardDef ? standardDef.defaultSkills : userProfile.skills || [],
-          yearsOfExperience: exp?.years || 3,
+          yearsOfExperience: exp?.years ?? 0,
           isMain: pName === userProfile.mainProfession || idx === 0,
         };
       });
@@ -132,7 +132,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
 
   // Service Delivery Types
   const [selectedServiceTypes, setSelectedServiceTypes] = useState<ServiceDeliveryType[]>(
-    userProfile.serviceTypes || ['on_demand', 'daily', 'contractual', 'remote']
+    userProfile.serviceTypes || []
   );
 
   // Search Keywords
@@ -143,9 +143,6 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
   // Pricing
   const [pricing, setPricing] = useState<PricingRateCard>(
     userProfile.pricing || {
-      hourlyRate: 350,
-      dailyRate: 1200,
-      visitFee: 200,
       isNegotiable: true,
       rateDescription: '',
     }
@@ -246,9 +243,13 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
       fullAddress: fullAddress.trim() || `${areaRoad ? areaRoad + ', ' : ''}${unionWard ? unionWard + ', ' : ''}${upazila}, ${district}, ${division}`,
     };
 
-    const derivedProfessions = userProfessions.map((p) => p.nameBn);
-    const derivedSkills: string[] = Array.from(new Set<string>(userProfessions.flatMap((p) => p.skills)));
-    const finalMainProfession = mainProfession || userProfessions[0]?.nameBn || '';
+    // Pending custom professions remain visible to the owner, but are not active/searchable until admin approval.
+    const activeProfessions = userProfessions.filter((p) => !p.isCustom || p.status === 'approved');
+    const derivedProfessions = activeProfessions.map((p) => p.nameBn);
+    const derivedSkills: string[] = Array.from(new Set<string>(activeProfessions.flatMap((p) => p.skills)));
+    const finalMainProfession = (mainProfession && activeProfessions.some((p) => p.nameBn === mainProfession))
+      ? mainProfession
+      : activeProfessions[0]?.nameBn || '';
 
     // Build comprehensive normalized search keywords (synonyms, phonetic tokens, bangla & english)
     const allKeywordsForNormalization = [
@@ -262,12 +263,12 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
     const normalizedKeywords = buildNormalizedSearchKeywords(allKeywordsForNormalization);
 
     // Construct experiences
-    const constructedExp: ProfessionExperience[] = userProfessions.map((prof) => {
+    const constructedExp: ProfessionExperience[] = activeProfessions.map((prof) => {
       const existing = experiences.find((e) => e.profession === prof.nameBn);
       return {
         profession: prof.nameBn,
-        years: prof.yearsOfExperience || existing?.years || 3,
-        description: prof.description || existing?.description || `${prof.nameBn} হিসেবে আবাসিক ও বাণিজ্যিক গ্রাহকদের বিশ্বস্ত সেবা প্রদান।`,
+        years: prof.yearsOfExperience ?? existing?.years ?? 0,
+        description: prof.description || existing?.description || '',
         isMain: prof.nameBn === finalMainProfession,
       };
     });
