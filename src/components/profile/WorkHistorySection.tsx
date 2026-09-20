@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Briefcase, Plus, Trash2, Calendar, MapPin } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Calendar, MapPin, Pencil, X } from 'lucide-react';
 import { WorkHistory } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -16,6 +16,7 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
 }) => {
   const { isBn } = useLanguage();
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [company, setCompany] = useState('');
   const [position, setPosition] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -24,36 +25,66 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
   const [location, setLocation] = useState('');
   const [jobDetails, setJobDetails] = useState('');
 
+  const resetForm = () => {
+    setCompany(''); setPosition(''); setStartDate(''); setEndDate('');
+    setCurrentlyWorking(false); setLocation(''); setJobDetails('');
+    setEditingId(null); setIsAdding(false);
+  };
+
+  const parseDateValue = (value: string, isEnd = false): number | null => {
+    const text = value.trim().toLowerCase();
+    if (!text || text === 'present' || text === 'চলমান') return isEnd ? new Date().getFullYear() : null;
+    const match = text.match(/(20\\d{2}|19\\d{2})/);
+    return match ? Number(match[1]) : null;
+  };
+
+  const getDurationYears = (item: WorkHistory): number => {
+    const start = parseDateValue(item.startDate);
+    const end = item.currentlyWorking ? new Date().getFullYear() : parseDateValue(item.endDate, true);
+    if (start === null || end === null || end < start) return 0;
+    return Math.max(0, end - start);
+  };
+
+  const totalExperienceYears = histories.reduce((sum, item) => sum + getDurationYears(item), 0);
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!company.trim() || !position.trim()) return;
+    if (!startDate.trim() || (!currentlyWorking && !endDate.trim())) return;
+    if (!currentlyWorking) {
+      const start = parseDateValue(startDate);
+      const end = parseDateValue(endDate, true);
+      if (start !== null && end !== null && end < start) return;
+    }
 
     const newRecord: WorkHistory = {
       id: `wh-${Date.now()}`,
       company: company.trim(),
       position: position.trim(),
-      startDate: startDate.trim() || '2022',
-      endDate: currentlyWorking ? (isBn ? 'চলমান' : 'Present') : (endDate.trim() || '2024'),
+      startDate: startDate.trim(),
+      endDate: currentlyWorking ? (isBn ? 'চলমান' : 'Present') : endDate.trim(),
       currentlyWorking,
-      location: location.trim() || (isBn ? 'বাংলাদেশ' : 'Bangladesh'),
+      location: location.trim(),
       jobDetails: jobDetails.trim(),
     };
 
-    onChange([...histories, newRecord]);
-
-    // Reset
-    setCompany('');
-    setPosition('');
-    setStartDate('');
-    setEndDate('');
-    setCurrentlyWorking(false);
-    setLocation('');
-    setJobDetails('');
-    setIsAdding(false);
+    if (editingId) {
+      onChange(histories.map((item) => item.id === editingId ? newRecord : item));
+    } else {
+      onChange([...histories, newRecord]);
+    }
+    resetForm();
   };
 
   const handleRemove = (id: string) => {
     onChange(histories.filter((h) => h.id !== id));
+    if (editingId === id) resetForm();
+  };
+
+  const handleEdit = (item: WorkHistory) => {
+    setCompany(item.company); setPosition(item.position); setStartDate(item.startDate);
+    setEndDate(item.currentlyWorking ? '' : item.endDate); setCurrentlyWorking(item.currentlyWorking);
+    setLocation(item.location); setJobDetails(item.jobDetails); setEditingId(item.id); setIsAdding(true);
   };
 
   return (
@@ -88,11 +119,11 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
         <form onSubmit={handleAdd} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 animate-in fade-in">
           <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <span className="text-xs font-bold text-slate-800">
-              {isBn ? 'নতুন কাজের অভিজ্ঞতা যোগ' : 'Add New Work Experience'}
+              {editingId ? (isBn ? 'কাজের অভিজ্ঞতা সম্পাদনা' : 'Edit Work Experience') : (isBn ? 'নতুন কাজের অভিজ্ঞতা যোগ' : 'Add New Work Experience')}
             </span>
             <button
               type="button"
-              onClick={() => setIsAdding(false)}
+              onClick={resetForm}
               className="text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
             >
               {isBn ? 'বাতিল' : 'Cancel'}
@@ -134,7 +165,8 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
                 type="text"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                placeholder={isBn ? 'যেমন: ২০২০' : 'e.g. 2020'}
+                required
+                placeholder={isBn ? 'যেমন: ২০২০ বা ২০২০-০১' : 'e.g. 2020 or 2020-01'}
                 className="w-full text-xs p-2 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -147,7 +179,8 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
                 disabled={currentlyWorking}
                 value={currentlyWorking ? (isBn ? 'চলমান' : 'Present') : endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                placeholder={isBn ? 'যেমন: ২০২৪' : 'e.g. 2024'}
+                required={!currentlyWorking}
+                placeholder={isBn ? 'যেমন: ২০২৪ বা ২০২৪-১২' : 'e.g. 2024 or 2024-12'}
                 className="w-full text-xs p-2 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-400"
               />
             </div>
@@ -195,7 +228,7 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setIsAdding(false)}
+              onClick={resetForm}
               className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
             >
               {isBn ? 'বাতিল' : 'Cancel'}
@@ -204,10 +237,17 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
               type="submit"
               className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs cursor-pointer"
             >
-              {isBn ? 'সংরক্ষণ করুন' : 'Save'}
+              {editingId ? (isBn ? 'পরিবর্তন সংরক্ষণ' : 'Save Changes') : (isBn ? 'সংরক্ষণ করুন' : 'Save')}
             </button>
           </div>
         </form>
+      )}
+
+      {histories.length > 0 && (
+        <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
+          <span className="text-xs font-semibold text-blue-900">{isBn ? 'মোট কাজের অভিজ্ঞতা' : 'Total Work Experience'}</span>
+          <span className="text-sm font-extrabold text-blue-700">{totalExperienceYears} {isBn ? 'বছর' : 'years'}</span>
+        </div>
       )}
 
       {/* List of existing Work Histories */}
@@ -249,14 +289,24 @@ export const WorkHistorySection: React.FC<WorkHistorySectionProps> = ({
               </div>
 
               {!readOnly && (
-                <button
+                <div className="flex items-start gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(item)}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                    title={isBn ? 'সম্পাদনা করুন' : 'Edit'}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
                   type="button"
                   onClick={() => handleRemove(item.id)}
                   className="self-end sm:self-start p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
                   title={isBn ? 'মুছে ফেলুন' : 'Remove'}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               )}
             </div>
           ))}
