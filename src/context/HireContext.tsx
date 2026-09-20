@@ -931,6 +931,22 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 8. Submit complaint
   const submitComplaint = async (hireRequestId: string, reason: string, details: string): Promise<UserComplaint> => {
     const target = hireRequests.find((r) => r.id === hireRequestId);
+    if (!target) {
+      throw new Error('অভিযোগ করার জন্য বৈধ কাজের অনুরোধ পাওয়া যায়নি।');
+    }
+    if (![target.customerId, target.workerId].includes(userProfile.userId)) {
+      throw new Error('শুধু এই কাজের কাস্টমার বা কর্মী অভিযোগ করতে পারবেন।');
+    }
+    if (!reason.trim()) {
+      throw new Error('অভিযোগের কারণ লিখুন।');
+    }
+    if (reason.trim().length > 200) {
+      throw new Error('অভিযোগের কারণ সর্বোচ্চ ২০০ অক্ষরের হতে হবে।');
+    }
+    if (details.trim().length > 2000) {
+      throw new Error('অভিযোগের বিস্তারিত সর্বোচ্চ ২০০০ অক্ষরের হতে হবে।');
+    }
+
     const complaintId = `HL-CMP-${Math.floor(10000 + Math.random() * 90000)}`;
     const now = new Date().toISOString();
 
@@ -942,8 +958,8 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       complainantPhone: userProfile.phoneNumber,
       accusedUserId: target ? (target.customerId === userProfile.userId ? target.workerId : target.customerId) : undefined,
       accusedUserName: target ? (target.customerId === userProfile.userId ? target.workerName : target.customerName) : undefined,
-      reason,
-      details,
+      reason: reason.trim(),
+      details: details.trim(),
       status: 'pending',
       createdAt: now,
     };
