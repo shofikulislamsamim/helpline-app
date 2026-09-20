@@ -455,7 +455,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       titleBn: 'কাজের অনুরোধ পাঠানো হয়েছে',
       messageBn: `আপনার অনুরোধ #${reqId} সফলভাবে ${worker.fullName}-এর কাছে পাঠানো হয়েছে। কর্মী খুব শীঘ্রই সাড়া দেবেন।`,
       type: 'hire_request',
-      hireRequestId: reqId,
       status: 'pending',
       isRead: false,
     });
@@ -467,7 +466,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       titleBn: 'নতুন কাজের অনুরোধ এসেছে! (New Hire Request)',
       messageBn: `${userProfile.fullName} আপনার জন্য একটি নতুন কাজের অনুরোধ #${reqId} (${params.workType}) পাঠিয়েছেন। এখনই কোটেশন দিন।`,
       type: 'hire_request',
-      hireRequestId: reqId,
       status: 'pending',
       isRead: false,
     });
@@ -510,7 +508,6 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       titleBn: `কোটেশন প্রাপ্তি: #${requestId}`,
       messageBn: `${target.workerName} আপনার অনুরোধে ৳${estimatedPrice} আনুমানিক কোটেশন প্রদান করেছেন। গ্রহণ বা বাতিল করতে ক্লিক করুন।`,
       type: 'quote',
-      hireRequestId: requestId,
       status: 'pending',
       isRead: false,
     });
