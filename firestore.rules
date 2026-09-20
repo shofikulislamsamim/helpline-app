@@ -214,8 +214,24 @@ service cloud.firestore {
     // Notifications
     match /notifications/{id} {
       allow read: if isAuthenticated() && (request.auth.uid == resource.data.recipientId || isAdmin());
-      allow create: if isAuthenticated() || isAdmin();
+      // Only admins or a participant in the referenced hire request may create a notification.
+      // The authenticated user must identify themselves as the sender.
+      allow create: if isAdmin() || (
+        isAuthenticated() &&
+        request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.hireRequestId is string &&
+        exists(/databases/$(database)/documents/serviceRequests/$(request.resource.data.hireRequestId)) &&
+        request.auth.uid in [
+          get(/databases/$(database)/documents/serviceRequests/$(request.resource.data.hireRequestId)).data.customerId,
+          get(/databases/$(database)/documents/serviceRequests/$(request.resource.data.hireRequestId)).data.workerId
+        ] &&
+        request.resource.data.recipientId in [
+          get(/databases/$(database)/documents/serviceRequests/$(request.resource.data.hireRequestId)).data.customerId,
+          get(/databases/$(database)/documents/serviceRequests/$(request.resource.data.hireRequestId)).data.workerId
+        ]
+      );
       allow update: if isAuthenticated() && request.auth.uid == resource.data.recipientId;
+      allow delete: if isAdmin();
     }
   }
 }
