@@ -130,11 +130,11 @@ export function calculateProfileCompletion(profile: UserProfile): ProfileComplet
     missingItems.push({ id: 'portfolio', labelBn: 'সম্পন্ন কাজের স্যাম্পল ছবি বা পোর্টফোলিও যুক্ত করুন', labelEn: 'Add work samples or portfolio pictures', weight: 4 });
   }
 
-  // 16. Pricing / Rate Card (2%)
+  // 16. Pricing / Rate Card (4%)
   if (profile.pricing && (profile.pricing.hourlyRate || profile.pricing.dailyRate || profile.pricing.visitFee)) {
-    score += 2;
+    score += 4;
   } else {
-    missingItems.push({ id: 'pricing', labelBn: 'আপনার কাজের মূল্য ও রেট চার্ট নির্ধারণ করুন', labelEn: 'Set pricing and rate chart', weight: 2 });
+    missingItems.push({ id: 'pricing', labelBn: 'আপনার কাজের মূল্য ও রেট চার্ট নির্ধারণ করুন', labelEn: 'Set pricing and rate chart', weight: 4 });
   }
 
   const finalScore = Math.min(100, Math.max(0, score));
