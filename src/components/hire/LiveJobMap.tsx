@@ -4,7 +4,8 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { HireRequest } from '../../types';
 import { db } from '../../lib/firebase';
 import { calculateHaversineDistanceKm, formatDistanceBn } from '../../lib/geoDistance';
-import { buildGoogleMapsNavigationUrl, getGoogleMapsApiKey, isValidCoordinate, TrackedHireRequest } from '../../lib/liveTracking';
+import { buildGoogleMapsNavigationUrl, isValidCoordinate, TrackedHireRequest } from '../../lib/liveTracking';
+import { getGoogleMapsApiKey } from '../../lib/googleMapsLoader';
 import { loadGoogleMaps } from '../../lib/googleMapsLoader';
 
 interface LiveJobMapProps {
