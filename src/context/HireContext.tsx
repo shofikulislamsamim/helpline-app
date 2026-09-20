@@ -847,15 +847,26 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const now = new Date().toISOString();
+    if (userProfile.userId !== target.customerId) {
+      throw new Error('শুধু এই কাজের কাস্টমারই রেটিং দিতে পারবেন।');
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new Error('রেটিং ১ থেকে ৫ এর মধ্যে হতে হবে।');
+    }
+    if (comment.trim().length > 1000) {
+      throw new Error('রিভিউ সর্বোচ্চ ১০০০ অক্ষরের হতে হবে।');
+    }
+
     const newReview: ServiceReview = {
-      id: `rev-${Date.now()}`,
+      // One review per completed hire request.
+      id: hireRequestId,
       hireRequestId,
       reviewerId: userProfile.userId,
       reviewerName: userProfile.fullName,
       reviewerAvatar: userProfile.avatarUrl,
       revieweeId: target.workerId,
       rating,
-      comment,
+      comment: comment.trim(),
       createdAt: now,
     };
 
