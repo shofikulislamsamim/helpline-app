@@ -26,6 +26,7 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
   const workerMarker = useRef<any>(null);
   const customerMarker = useRef<any>(null);
   const routePolylines = useRef<any[]>([]);
+  const lastRouteRefresh = useRef<{ at: number; latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -125,6 +126,24 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
           }
         }
 
+        const previousRoute = lastRouteRefresh.current;
+        const routeMovedEnough = !previousRoute ||
+          Date.now() - previousRoute.at >= 30000 ||
+          calculateHaversineDistanceKm(
+            previousRoute.latitude,
+            previousRoute.longitude,
+            worker.latitude,
+            worker.longitude
+          ) >= 0.1;
+
+        if (!routeMovedEnough) return;
+
+        lastRouteRefresh.current = {
+          at: Date.now(),
+          latitude: worker.lat,
+          longitude: worker.lng,
+        };
+
         routePolylines.current.forEach((polyline) => polyline.setMap(null));
         routePolylines.current = [];
 
@@ -132,7 +151,6 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
           origin: worker,
           destination: customer || destinationAddress,
           travelMode: 'DRIVING',
-          routingPreference: 'TRAFFIC_AWARE_OPTIMAL',
           fields: ['path', 'distanceMeters', 'durationMillis', 'viewport'],
         });
 
