@@ -130,12 +130,12 @@ export const CustomProfessionModal: React.FC<CustomProfessionModalProps> = ({
               <CheckCircle className="w-6 h-6" />
             </div>
             <h4 className="font-bold text-slate-800 text-base">
-              {isBn ? 'কাজের ধরন সফলভাবে প্রোফাইলে যোগ হয়েছে!' : 'Profession successfully added to profile!'}
+              {isBn ? 'কাজের ধরন অনুমোদনের জন্য জমা হয়েছে!' : 'Profession submitted for approval!'}
             </h4>
             <p className="text-xs text-slate-500">
               {isBn 
-                ? 'এটি তাৎক্ষণিকভাবে আপনার প্রোফাইলে যুক্ত হয়েছে এবং অনুসন্ধানযোগ্য হবে।' 
-                : 'This has been added to your profile immediately and will be searchable.'}
+                ? 'এটি অ্যাডমিন অনুমোদনের অপেক্ষায় আছে। অনুমোদনের পর এটি সক্রিয় ও অনুসন্ধানযোগ্য হবে।' 
+                : 'It is pending admin approval and will become active and searchable after approval.'}
             </p>
           </div>
         ) : (
@@ -145,8 +145,8 @@ export const CustomProfessionModal: React.FC<CustomProfessionModalProps> = ({
               <div>
                 <strong>{isBn ? 'উন্মুক্ত সুবিধা: ' : 'Open Feature: '}</strong>
                 {isBn 
-                  ? 'অ্যাডমিন তালিকায় না থাকলেও আপনি নিজের যেকোনো পেশা ও দক্ষতা যোগ করতে পারবেন। এটি সাথে সাথে আপনার প্রোফাইলে সেভ হবে।' 
-                  : 'Even if not in the pre-defined list, you can add any profession and skills. It saves to your profile immediately.'}
+                  ? 'অ্যাডমিন তালিকায় না থাকলেও আপনি নিজের পেশা ও দক্ষতা প্রস্তাব করতে পারবেন। অনুমোদনের পর এটি প্রোফাইলে সক্রিয় হবে।' 
+                  : 'You can propose a profession and skills even if they are not in the predefined list. It becomes active after admin approval.'}
               </div>
             </div>
 
