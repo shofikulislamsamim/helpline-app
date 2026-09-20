@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CreditCard, Edit3, DollarSign, Clock, Calendar } from 'lucide-react';
 import { PricingRateCard } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
@@ -9,27 +9,65 @@ interface PricingRateCardSectionProps {
   readOnly?: boolean;
 }
 
+const parseRate = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+};
+
 export const PricingRateCardSection: React.FC<PricingRateCardSectionProps> = ({
   pricing,
   onChange,
   readOnly = false,
 }) => {
-  const { isBn, t, formatNumber, formatCurrency } = useLanguage();
+  const { isBn, t, formatCurrency } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [hourlyRate, setHourlyRate] = useState<string>(pricing?.hourlyRate?.toString() || '');
   const [dailyRate, setDailyRate] = useState<string>(pricing?.dailyRate?.toString() || '');
   const [visitFee, setVisitFee] = useState<string>(pricing?.visitFee?.toString() || '');
   const [isNegotiable, setIsNegotiable] = useState<boolean>(pricing?.isNegotiable ?? true);
   const [rateDescription, setRateDescription] = useState<string>(pricing?.rateDescription || '');
+  const [rateError, setRateError] = useState('');
+
+  useEffect(() => {
+    if (isEditing) return;
+    setHourlyRate(pricing?.hourlyRate?.toString() || '');
+    setDailyRate(pricing?.dailyRate?.toString() || '');
+    setVisitFee(pricing?.visitFee?.toString() || '');
+    setIsNegotiable(pricing?.isNegotiable ?? true);
+    setRateDescription(pricing?.rateDescription || '');
+  }, [pricing, isEditing]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!onChange) return;
 
+    const hourly = parseRate(hourlyRate);
+    const daily = parseRate(dailyRate);
+    const visit = parseRate(visitFee);
+
+    const hasInvalidInput =
+      (hourlyRate.trim() && hourly === undefined) ||
+      (dailyRate.trim() && daily === undefined) ||
+      (visitFee.trim() && visit === undefined);
+
+    if (hasInvalidInput) {
+      setRateError(
+        isBn
+          ? 'রেট অবশ্যই ০ বা তার বেশি হতে হবে। ভুল মান থাকলে সেভ করা যাবে না।'
+          : 'Rates must be 0 or greater. Invalid values cannot be saved.'
+      );
+      return;
+    }
+
+    setRateError('');
+
     onChange({
-      hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
-      dailyRate: dailyRate ? Number(dailyRate) : undefined,
-      visitFee: visitFee ? Number(visitFee) : undefined,
+      hourlyRate: hourly,
+      dailyRate: daily,
+      visitFee: visit,
       isNegotiable,
       rateDescription: rateDescription.trim() || undefined,
     });
@@ -43,23 +81,26 @@ export const PricingRateCardSection: React.FC<PricingRateCardSectionProps> = ({
         <div>
           <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-emerald-600" />
-            <span>{isBn ? '১৩. সেবার মূল্য ও রেট চার্ট (Pricing & Rate Card)' : '13. Pricing & Rate Card'}</span>
+            <span>{isBn ? 'মূল্য ও রেট চার্ট' : 'Pricing & Rate Card'}</span>
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            {isBn 
-              ? 'আপনার কাজের সাধারণ রেট, দৈনিক মজুরি ও ভিজিট ফি স্পষ্ট থাকলে গ্রাহকরা সহজেই কাজ দিতে পারেন।' 
-              : 'Clear standard rates, daily wages, and visit fees help customers easily hire your services.'}
+            {isBn
+              ? 'ঘণ্টা, দিন বা ভিজিট অনুযায়ী আপনার সাধারণ রেট দিন। দরদাম সাপেক্ষে হলে রেট ফাঁকা রাখা যাবে।'
+              : 'Set hourly, daily, or visit rates. Leave numeric rates blank if the final price is negotiable.'}
           </p>
         </div>
 
         {!readOnly && !isEditing && (
           <button
             type="button"
-            onClick={() => setIsEditing(true)}
+            onClick={() => {
+              setRateError('');
+              setIsEditing(true);
+            }}
             className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
           >
             <Edit3 className="w-3.5 h-3.5" />
-            <span>{isBn ? 'রেট চার্ট পরিবর্তন করুন' : 'Edit Rate Card'}</span>
+            <span>{isBn ? 'রেট সেট করুন' : 'Set Rates'}</span>
           </button>
         )}
       </div>
@@ -67,56 +108,54 @@ export const PricingRateCardSection: React.FC<PricingRateCardSectionProps> = ({
       {isEditing ? (
         <form onSubmit={handleSave} className="bg-slate-50 p-4 rounded-2xl border border-emerald-200 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {isBn ? 'ঘণ্টাভিত্তিক ফি (৳/ঘণ্টা)' : 'Hourly Rate (৳/hr)'}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">৳</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                  placeholder={isBn ? 'উদা: ৩৫০' : 'e.g. 350'}
-                  className="w-full pl-7 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                />
+            {[
+              {
+                labelBn: 'ঘণ্টাভিত্তিক রেট (৳/ঘণ্টা)',
+                labelEn: 'Hourly Rate (৳/hr)',
+                value: hourlyRate,
+                setValue: setHourlyRate,
+                placeholderBn: 'যেমন: ৩৫০',
+                placeholderEn: 'e.g. 350',
+              },
+              {
+                labelBn: 'দৈনিক রেট (৳/দিন)',
+                labelEn: 'Daily Rate (৳/day)',
+                value: dailyRate,
+                setValue: setDailyRate,
+                placeholderBn: 'যেমন: ১২০০',
+                placeholderEn: 'e.g. 1200',
+              },
+              {
+                labelBn: 'ভিজিট / পরিদর্শন ফি (৳)',
+                labelEn: 'Visit / Inspection Fee (৳)',
+                value: visitFee,
+                setValue: setVisitFee,
+                placeholderBn: 'যেমন: ২০০',
+                placeholderEn: 'e.g. 200',
+              },
+            ].map((field) => (
+              <div key={field.labelEn}>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  {isBn ? field.labelBn : field.labelEn}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">৳</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    value={field.value}
+                    onChange={(e) => {
+                      field.setValue(e.target.value);
+                      setRateError('');
+                    }}
+                    placeholder={isBn ? field.placeholderBn : field.placeholderEn}
+                    className="w-full pl-7 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {isBn ? 'দৈনিক মজুরি (৳/দিন)' : 'Daily Rate (৳/day)'}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">৳</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={dailyRate}
-                  onChange={(e) => setDailyRate(e.target.value)}
-                  placeholder={isBn ? 'উদা: ১২০০' : 'e.g. 1200'}
-                  className="w-full pl-7 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {isBn ? 'ভিজিট / পরিদর্শন ফি (৳)' : 'Visit / Inspection Fee (৳)'}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">৳</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={visitFee}
-                  onChange={(e) => setVisitFee(e.target.value)}
-                  placeholder={isBn ? 'উদা: ২০০' : 'e.g. 200'}
-                  className="w-full pl-7 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
+            ))}
 
             <div className="sm:col-span-3 flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-200">
               <input
@@ -127,31 +166,41 @@ export const PricingRateCardSection: React.FC<PricingRateCardSectionProps> = ({
                 className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
               />
               <label htmlFor="isNegotiableInput" className="text-xs text-slate-800 font-medium cursor-pointer">
-                <strong>{isBn ? 'মূল্য আলোচনা সাপেক্ষে (Negotiable): ' : 'Negotiable Rate: '}</strong>
-                {isBn 
-                  ? 'কাজের পরিধি ও পার্টসের ওপর ভিত্তি করে মোট দরদাম গ্রাহকের সাথে আলোচনার মাধ্যমে ঠিক হবে।' 
-                  : 'Final amount will be agreed upon with the customer depending on work scope and parts.'}
+                <strong>{isBn ? 'মূল্য আলোচনা সাপেক্ষে: ' : 'Negotiable Rate: '}</strong>
+                {isBn
+                  ? 'ফাইনাল মূল্য কাজের পরিধি অনুযায়ী আলোচনা করে ঠিক হবে।'
+                  : 'The final price can be agreed based on the work scope.'}
               </label>
             </div>
 
             <div className="sm:col-span-3">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {isBn ? 'মূল্য নির্ধারণ সংক্রান্ত বিশেষ নোট বা শর্তাবলি' : 'Rate card notes or terms'}
+                {isBn ? 'রেটের নোট / শর্তাবলি' : 'Rate notes / terms'}
               </label>
               <textarea
                 rows={2}
+                maxLength={300}
                 value={rateDescription}
                 onChange={(e) => setRateDescription(e.target.value)}
-                placeholder={isBn ? 'উদা: জরুরি কাজের জন্য অতিরিক্ত চার্জ প্রযোজ্য হতে পারে। পার্টসের মূল্য কাজের খরচের বাইরে।' : 'e.g. Extra charge for emergency requests. Parts cost excluded.'}
+                placeholder={isBn ? 'যেমন: জরুরি কাজের জন্য অতিরিক্ত চার্জ হতে পারে। পার্টসের মূল্য আলাদা।' : 'e.g. Emergency work may have an extra charge. Parts are separate.'}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
+          {rateError && (
+            <p role="alert" className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              {rateError}
+            </p>
+          )}
+
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setIsEditing(false)}
+              onClick={() => {
+                setRateError('');
+                setIsEditing(false);
+              }}
               className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
             >
               {t.common.cancel}
@@ -167,52 +216,40 @@ export const PricingRateCardSection: React.FC<PricingRateCardSectionProps> = ({
       ) : (
         <div className="bg-slate-50/80 rounded-2xl border border-slate-200 p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Hourly Rate */}
             <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 space-y-1">
               <div className="text-[11px] text-slate-500 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-blue-600" />
                 <span>{isBn ? 'ঘণ্টাভিত্তিক রেট' : 'Hourly Rate'}</span>
               </div>
               <div className="text-lg font-black text-slate-900">
-                {pricing?.hourlyRate 
-                  ? `${formatCurrency(pricing.hourlyRate)} /${isBn ? 'ঘণ্টা' : 'hr'}` 
+                {pricing?.hourlyRate !== undefined
+                  ? `${formatCurrency(pricing.hourlyRate)} /${isBn ? 'ঘণ্টা' : 'hr'}`
                   : (isBn ? 'নির্ধারিত নেই' : 'Not set')}
               </div>
-              <span className="text-[10px] text-slate-400">
-                {isBn ? 'ছোটখাটো কাজের জন্য' : 'For smaller tasks'}
-              </span>
             </div>
 
-            {/* Daily Rate */}
             <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 space-y-1">
               <div className="text-[11px] text-slate-500 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-                <span>{isBn ? 'দৈনিক মজুরি' : 'Daily Rate'}</span>
+                <span>{isBn ? 'দৈনিক রেট' : 'Daily Rate'}</span>
               </div>
               <div className="text-lg font-black text-slate-900">
-                {pricing?.dailyRate 
-                  ? `${formatCurrency(pricing.dailyRate)} /${isBn ? 'দিন' : 'day'}` 
+                {pricing?.dailyRate !== undefined
+                  ? `${formatCurrency(pricing.dailyRate)} /${isBn ? 'দিন' : 'day'}`
                   : (isBn ? 'নির্ধারিত নেই' : 'Not set')}
               </div>
-              <span className="text-[10px] text-slate-400">
-                {isBn ? 'পুরো দিনের কাজের জন্য' : 'For full day work'}
-              </span>
             </div>
 
-            {/* Visit Fee */}
             <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 space-y-1">
               <div className="text-[11px] text-slate-500 flex items-center gap-1">
                 <DollarSign className="w-3.5 h-3.5 text-amber-600" />
                 <span>{isBn ? 'ভিজিট / পরিদর্শন ফি' : 'Visit / Inspection Fee'}</span>
               </div>
               <div className="text-lg font-black text-slate-900">
-                {pricing?.visitFee 
-                  ? formatCurrency(pricing.visitFee) 
+                {pricing?.visitFee !== undefined
+                  ? formatCurrency(pricing.visitFee)
                   : (isBn ? 'নির্ধারিত নেই' : 'Not set')}
               </div>
-              <span className="text-[10px] text-slate-400">
-                {isBn ? 'বাসায় এসে সমস্যা দেখার ফি' : 'On-site inspection fee'}
-              </span>
             </div>
           </div>
 
@@ -228,9 +265,9 @@ export const PricingRateCardSection: React.FC<PricingRateCardSectionProps> = ({
                     : 'bg-blue-100 text-blue-800 border border-blue-300'
                 }`}
               >
-                {pricing?.isNegotiable ?? true 
-                  ? (isBn ? '✓ আলোচনা সাপেক্ষে (Negotiable)' : '✓ Negotiable') 
-                  : (isBn ? 'ফিক্সড রেট (Fixed)' : 'Fixed Rate')}
+                {pricing?.isNegotiable ?? true
+                  ? (isBn ? '✓ আলোচনা সাপেক্ষে' : '✓ Negotiable')
+                  : (isBn ? 'ফিক্সড রেট' : 'Fixed Rate')}
               </span>
             </div>
 
