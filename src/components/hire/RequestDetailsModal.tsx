@@ -20,6 +20,7 @@ import {
 import { HireRequest } from '../../types';
 import { calculateServiceFee } from '../../lib/commissionData';
 import { useHire } from '../../context/HireContext';
+import { LiveJobMap } from './LiveJobMap';
 
 interface RequestDetailsModalProps {
   request: HireRequest | null;
@@ -163,6 +164,10 @@ export const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
               </div>
             </div>
           </div>
+
+          {(request.status === 'ON_THE_WAY' || request.status === 'WORK_STARTED') && (
+            <LiveJobMap request={request} compact />
+          )}
 
           {/* Problem Details */}
           <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2">
