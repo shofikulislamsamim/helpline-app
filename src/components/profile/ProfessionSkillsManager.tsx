@@ -118,7 +118,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
         categoryMode: profDef.categoryMode,
         isCustom: false,
         skills: [...profDef.defaultSkills],
-        yearsOfExperience: 3,
+        yearsOfExperience: 0,
         isMain: userProfessions.length === 0,
       };
 
@@ -145,8 +145,8 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
     const updated = [...userProfessions, customItem];
     onUserProfessionsChange(updated);
 
-    // If no main, set this
-    if (!mainProfession) {
+    // Pending custom professions cannot become the active main profession.
+    if (!mainProfession && customItem.status === 'approved') {
       onMainProfessionChange(customItem.nameBn);
     }
 
@@ -365,7 +365,9 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                           </h5>
                           {profItem.isCustom && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
-                              {isBn ? 'কাস্টম পেশা' : 'Custom'}
+                              {profItem.status === 'pending'
+                                ? (isBn ? 'অনুমোদনের অপেক্ষায়' : 'Pending approval')
+                                : (isBn ? 'কাস্টম পেশা' : 'Custom')}
                             </span>
                           )}
                           <span
@@ -380,8 +382,8 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                         </div>
                         <p className="text-[11px] text-slate-500 truncate mt-0.5">
                           {isBn 
-                            ? `${formatNumber(profItem.skills.length)} টি দক্ষতা • ${formatNumber(profItem.yearsOfExperience || 1)} বছর অভিজ্ঞতা`
-                            : `${profItem.skills.length} skills • ${profItem.yearsOfExperience || 1} years exp`}
+                            ? `${formatNumber(profItem.skills.length)} টি দক্ষতা • ${formatNumber(profItem.yearsOfExperience ?? 0)} বছর অভিজ্ঞতা`
+                            : `${profItem.skills.length} skills • ${profItem.yearsOfExperience ?? 0} years exp`}
                         </p>
                       </div>
                     </div>
@@ -451,7 +453,7 @@ export const ProfessionSkillsManager: React.FC<ProfessionSkillsManagerProps> = (
                             min={0}
                             max={50}
                             disabled={readOnly}
-                            value={profItem.yearsOfExperience || 1}
+                            value={profItem.yearsOfExperience ?? 0}
                             onChange={(e) =>
                               handleUpdateExperience(profItem.id, Number(e.target.value))
                             }
