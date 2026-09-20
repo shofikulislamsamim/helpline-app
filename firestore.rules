@@ -124,23 +124,100 @@ service cloud.firestore {
         request.auth.uid == resource.data.creatorId ||
         isAdmin()
       );
-      // A request must be created by its customer/creator, never on behalf of another user.
+
+      // A request must be created by its customer/creator.
       allow create: if isAuthenticated() && (
         request.auth.uid == request.resource.data.customerId ||
         request.auth.uid == request.resource.data.creatorId
       );
-      allow update: if isAuthenticated() && (
-        request.auth.uid == resource.data.customerId ||
-        request.auth.uid == resource.data.workerId ||
-        request.auth.uid == resource.data.creatorId ||
-        isAdmin()
-      );
+
+      // Admins may manage requests. Normal users may only perform the specific
+      // lifecycle action that belongs to their role.
+      allow update: if isAdmin() ||
+        (
+          isAuthenticated() &&
+          (
+            // Worker sends a quote.
+            (
+              request.auth.uid == resource.data.workerId &&
+              resource.data.status == 'REQUESTED' &&
+              request.resource.data.status == 'QUOTED' &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'quote', 'quotedAt'])
+            ) ||
+
+            // Customer accepts a quote/request.
+            (
+              request.auth.uid == resource.data.customerId &&
+              resource.data.status in ['REQUESTED', 'QUOTED'] &&
+              request.resource.data.status == 'ACCEPTED' &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'agreedPrice', 'acceptedAt'])
+            ) ||
+
+            // Worker rejects a request.
+            (
+              request.auth.uid == resource.data.workerId &&
+              resource.data.status == 'REQUESTED' &&
+              request.resource.data.status == 'REJECTED' &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'rejectionReason', 'rejectedAt'])
+            ) ||
+
+            // Worker advances the job state.
+            (
+              request.auth.uid == resource.data.workerId &&
+              resource.data.status == 'ACCEPTED' &&
+              request.resource.data.status == 'ON_THE_WAY' &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            ) ||
+            (
+              request.auth.uid == resource.data.workerId &&
+              resource.data.status in ['ACCEPTED', 'ON_THE_WAY'] &&
+              request.resource.data.status == 'WORK_STARTED' &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'startedAt'])
+            ) ||
+            (
+              request.auth.uid == resource.data.workerId &&
+              resource.data.status == 'WORK_STARTED' &&
+              request.resource.data.status == 'WORK_COMPLETED' &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'completedAt', 'serviceFeeBreakdown'])
+            ) ||
+
+            // Customer or worker may cancel before work starts.
+            (
+              (
+                request.auth.uid == resource.data.customerId &&
+                request.resource.data.cancelledBy == 'customer'
+              ) ||
+              (
+                request.auth.uid == resource.data.workerId &&
+                request.resource.data.cancelledBy == 'worker'
+              )
+            ) &&
+            resource.data.status in ['REQUESTED', 'QUOTED', 'ACCEPTED', 'ON_THE_WAY'] &&
+            request.resource.data.status == 'CANCELLED' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledBy', 'cancellationReason', 'cancelledAt'])
+          ) ||
+
+          // Customer may submit rating fields only after completion.
+          (
+            request.auth.uid == resource.data.customerId &&
+            resource.data.status == 'WORK_COMPLETED' &&
+            request.resource.data.ratingSubmitted == true &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingSubmitted', 'ratingValue', 'ratingComment'])
+          ) ||
+
+          // A participant may mark the request as disputed when filing a complaint.
+          (
+            request.auth.uid in [resource.data.customerId, resource.data.workerId] &&
+            request.resource.data.status == 'DISPUTED' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'complaintId'])
+          )
+        );
+
       allow delete: if isAdmin() || (isAuthenticated() && (
         request.auth.uid == resource.data.customerId ||
         request.auth.uid == resource.data.creatorId
       ));
     }
-
     match /jobs/{id} {
       allow read: if true;
       allow create: if isAuthenticated();
