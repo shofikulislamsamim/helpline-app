@@ -433,6 +433,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Send in-app notification to customer
     addNotification({
       recipientId: userProfile.userId,
+      hireRequestId: reqId,
       titleBn: 'কাজের অনুরোধ পাঠানো হয়েছে',
       messageBn: `আপনার অনুরোধ #${reqId} সফলভাবে ${worker.fullName}-এর কাছে পাঠানো হয়েছে। কর্মী খুব শীঘ্রই সাড়া দেবেন।`,
       type: 'hire_request',
@@ -444,6 +445,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Send in-app notification to worker
     addNotification({
       recipientId: worker.userId,
+      hireRequestId: reqId,
       titleBn: 'নতুন কাজের অনুরোধ এসেছে! (New Hire Request)',
       messageBn: `${userProfile.fullName} আপনার জন্য একটি নতুন কাজের অনুরোধ #${reqId} (${params.workType}) পাঠিয়েছেন। এখনই কোটেশন দিন।`,
       type: 'hire_request',
@@ -486,6 +488,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Notify customer
     addNotification({
       recipientId: target.customerId,
+      hireRequestId: requestId,
       titleBn: `কোটেশন প্রাপ্তি: #${requestId}`,
       messageBn: `${target.workerName} আপনার অনুরোধে ৳${estimatedPrice} আনুমানিক কোটেশন প্রদান করেছেন। গ্রহণ বা বাতিল করতে ক্লিক করুন।`,
       type: 'quote',
@@ -553,6 +556,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Notify worker
     addNotification({
       recipientId: target.workerId,
+      hireRequestId: requestId,
       titleBn: `কোটেশন গৃহীত হয়েছে! #${requestId}`,
       messageBn: `অভিনন্দন! ${target.customerName} আপনার কোটেশন (৳${agreedPrice}) গ্রহণ করেছেন। প্ল্যাটফর্ম ফি বাদে আনুমানিক প্রাপ্য ৳${feeBreakdown.workerReceivable}। নির্ধারিত সময়ে কাজে রওনা দিন।`,
       type: 'general',
@@ -563,6 +567,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Notify customer
     addNotification({
       recipientId: target.customerId,
+      hireRequestId: requestId,
       titleBn: `কাজের চুক্তি সম্পন্ন হয়েছে! #${requestId}`,
       messageBn: `${target.workerName}-এর সাথে ৳${agreedPrice} মূল্যে চুক্তি সম্পন্ন হয়েছে। কর্মী কিছুক্ষণের মধ্যে রওনা দেবেন।`,
       type: 'general',
@@ -620,6 +625,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addNotification({
       recipientId: target.customerId,
+      hireRequestId: requestId,
       titleBn: `অনুরোধ গৃহীত হয়নি: #${requestId}`,
       messageBn: `দুঃখিত, ${target.workerName} এই মুহূর্তে কাজটি গ্রহণ করতে পারছেন না। আপনি অন্যান্য সক্রিয় কর্মীদের সাথে যোগাযোগ করতে পারেন।`,
       type: 'general',
@@ -679,6 +685,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Worker notification for completion & fee summary
       addNotification({
         recipientId: target.workerId,
+      hireRequestId: requestId,
         titleBn: `কাজ সম্পন্ন হিসেবে চিহ্নিত: #${requestId}`,
         messageBn: `কাজটি সফলভাবে সম্পন্ন হয়েছে। মোট পারিশ্রমিক ৳${finalPrice} (প্ল্যাটফর্ম ফি বাদে প্রাপ্য ৳${patch.serviceFeeBreakdown.workerReceivable})।`,
         type: 'general',
@@ -712,6 +719,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addNotification({
       recipientId: target.customerId,
+      hireRequestId: requestId,
       titleBn: notifTitle,
       messageBn: notifMsg,
       type: 'general',
@@ -772,6 +780,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addNotification({
       recipientId,
+      hireRequestId: requestId,
       titleBn: `কাজের অনুরোধ বাতিল হয়েছে: #${requestId}`,
       messageBn: `${actorName} অনুরোধটি বাতিল করেছেন। কারণ: ${reason}`,
       type: 'general',
@@ -870,6 +879,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Send in-app notification to worker
     addNotification({
       recipientId: target.workerId,
+      hireRequestId,
       titleBn: `নতুন রেটিং পেয়েছেন! ⭐ ${rating}`,
       messageBn: `${userProfile.fullName} আপনার কাজের প্রশংসা করেছেন: "${comment.slice(0, 50)}..."`,
       type: 'general',
@@ -919,6 +929,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addNotification({
       recipientId: userProfile.userId,
+      hireRequestId,
       titleBn: `অভিযোগ গ্রহণ করা হয়েছে: #${complaintId}`,
       messageBn: `আপনার অভিযোগটি HelpLine অ্যাডমিন টিমের কাছে পৌঁছেছে। ২৪ ঘণ্টার মধ্যে পর্যালোচনা করে ব্যবস্থা নেওয়া হবে।`,
       type: 'general',
@@ -929,6 +940,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (newComplaint.accusedUserId) {
       addNotification({
         recipientId: newComplaint.accusedUserId,
+        hireRequestId,
         titleBn: `অভিযোগ পর্যালোচনা শুরু হয়েছে: #${complaintId}`,
         messageBn: `অনুরোধ #${hireRequestId}-এ একটি অভিযোগ পর্যালোচনাধীন রয়েছে। হেল্পলাইন টিম এ বিষয়ে যোগাযোগ করতে পারে।`,
         type: 'general',
@@ -980,6 +992,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     addNotification({
       recipientId: target.complainantId,
+      hireRequestId: target.hireRequestId,
       titleBn: `অভিযোগ আপডেট: #${complaintId}`,
       messageBn: `আপনার অভিযোগের স্ট্যাটাস পরিবর্তিত হয়ে '${statusLabels[status] || status}' হয়েছে। ${adminNotes ? `মন্তব্য: ${adminNotes}` : ''}`,
       type: 'general',
@@ -1077,6 +1090,7 @@ export const HireProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (otherId) {
         addNotification({
           recipientId: otherId,
+          hireRequestId: targetConv.hireRequestId,
           titleBn: `নতুন বার্তা: ${userProfile.fullName}`,
           messageBn: text.trim().slice(0, 50) + (text.trim().length > 50 ? '...' : ''),
           type: 'general',
