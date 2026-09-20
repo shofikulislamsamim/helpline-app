@@ -141,11 +141,8 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
   );
 
   // Pricing
-  const [pricing, setPricing] = useState<PricingRateCard>(
-    userProfile.pricing || {
-      isNegotiable: true,
-      rateDescription: '',
-    }
+  const [pricing, setPricing] = useState<PricingRateCard | undefined>(
+    userProfile.pricing
   );
 
   // Experiences per profession
@@ -303,7 +300,15 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, on
       isOnline,
       availabilityUpdatedAt: new Date().toISOString(),
       portfolio,
-      pricing,
+      pricing: pricing && (
+        pricing.hourlyRate !== undefined ||
+        pricing.dailyRate !== undefined ||
+        pricing.visitFee !== undefined ||
+        pricing.isNegotiable === true ||
+        Boolean(pricing.rateDescription?.trim())
+      )
+        ? pricing
+        : undefined,
       privacySettings,
       isProfileSetupComplete: true,
     };
