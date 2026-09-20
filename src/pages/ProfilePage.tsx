@@ -222,9 +222,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                   </span>
                 </span>
                 <span className="flex items-center gap-1 font-semibold text-amber-600">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{(userProfile.rating || 5.0).toFixed(1)}</span>
-                  <span className="text-slate-400 font-normal">({formatNumber(userProfile.reviewCount || 0)} {isBn ? 'রিভিউ' : 'reviews'})</span>
+                  {userProfile.reviewCount > 0 ? (
+                    <>
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      <span>{userProfile.rating.toFixed(1)}</span>
+                      <span className="text-slate-400 font-normal">({formatNumber(userProfile.reviewCount)} {isBn ? 'রিভিউ' : 'reviews'})</span>
+                    </>
+                  ) : (
+                    <span className="text-slate-400 font-normal">{isBn ? 'এখনও কোনো রিভিউ নেই' : 'No reviews yet'}</span>
+                  )}
                 </span>
               </div>
 
