@@ -3,6 +3,7 @@ import { collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/f
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useHire } from '../../context/HireContext';
+import { HireRequest } from '../../types';
 import { createTrackingLocation, TrackedHireRequest } from '../../lib/liveTracking';
 
 const UPDATE_MIN_INTERVAL_MS = 5000;
