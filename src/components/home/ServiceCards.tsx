@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wrench, HardHat, Briefcase, Car, PackageCheck, ShoppingBag, ArrowUpRight } from 'lucide-react';
+import { Wrench, HardHat, Briefcase, ArrowUpRight } from 'lucide-react';
 import { ModuleId } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -43,39 +43,6 @@ export const ServiceCards: React.FC<ServiceCardsProps> = ({ onSelectModule }) =>
       icon: Briefcase,
       accent: 'purple',
       iconBg: 'bg-purple-100 text-purple-600',
-    },
-    {
-      id: 'ride' as ModuleId,
-      number: formatNumber(4),
-      title: t.modules.ride.title,
-      subtitle: t.modules.ride.subtitle,
-      badge: t.modules.ride.badge,
-      description: t.modules.ride.description,
-      icon: Car,
-      accent: 'blue',
-      iconBg: 'bg-blue-100 text-blue-600',
-    },
-    {
-      id: 'delivery' as ModuleId,
-      number: formatNumber(5),
-      title: t.modules.delivery.title,
-      subtitle: t.modules.delivery.subtitle,
-      badge: t.modules.delivery.badge,
-      description: t.modules.delivery.description,
-      icon: PackageCheck,
-      accent: 'red',
-      iconBg: 'bg-red-100 text-red-600',
-    },
-    {
-      id: 'buysell' as ModuleId,
-      number: formatNumber(6),
-      title: t.modules.buysell.title,
-      subtitle: t.modules.buysell.subtitle,
-      badge: t.modules.buysell.badge,
-      description: t.modules.buysell.description,
-      icon: ShoppingBag,
-      accent: 'emerald',
-      iconBg: 'bg-emerald-100 text-emerald-600',
     },
   ];
 
