@@ -360,30 +360,6 @@ export const STANDARD_PROFESSIONS: ProfessionDef[] = [
       'পেস্ট কন্ট্রোল'
     ],
   },
-  {
-    id: 'driver',
-    nameBn: 'ড্রাইভার ও রাইডার (Professional Driver)',
-    nameEn: 'Professional Driver',
-    categoryMode: 'physical',
-    icon: '🚘',
-    descriptionBn: 'ব্যক্তিগত ও বাণিজ্যিক গাড়ি চালনা',
-    defaultSkills: [
-      'Private Car Driving (প্রাইভেট কার চালনা)',
-      'Motorcycle & Scooter Riding (বাইক রাইডিং)',
-      'CNG & Auto Driving (সিএনজি / অটো চালনা)',
-      'Microbus & Van Driving (মাইক্রোবাস ও পিকআপ)',
-      'Highway & Long Route Driving (হাইওয়ে ড্রাইভিং)',
-    ],
-    suggestedKeywords: [
-      'Driver',
-      'ড্রাইভার',
-      'গাড়ি চালক',
-      'ব্যক্তিগত ড্রাইভার',
-      'প্রাইভেট কার',
-      'রাইডার'
-    ],
-  },
-
   // 💻 Freelance / Digital Services
   {
     id: 'graphic_designer',
