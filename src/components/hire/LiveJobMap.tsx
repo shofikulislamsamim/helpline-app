@@ -42,8 +42,19 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
 
   const workerLocation = liveRequest.tracking?.workerLocation;
   const customerLocation = (liveRequest as any).workLocation?.coordinates as Coordinates | undefined;
+  const destinationAddress = String(
+    (liveRequest as any).workLocation?.fullAddress ||
+    [
+      (liveRequest as any).workLocation?.areaRoad,
+      (liveRequest as any).workLocation?.upazila,
+      (liveRequest as any).workLocation?.district,
+      (liveRequest as any).workLocation?.division,
+      'Bangladesh',
+    ].filter(Boolean).join(', ')
+  );
   const hasWorkerLocation = isValidCoordinate(workerLocation?.latitude, workerLocation?.longitude);
   const hasCustomerLocation = isValidCoordinate(customerLocation?.latitude, customerLocation?.longitude);
+  const hasDestination = destinationAddress.trim().length > 5;
   const apiConfigured = Boolean(getGoogleMapsApiKey());
 
   const fallbackDistance = useMemo(() => {
@@ -57,7 +68,7 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
   }, [hasWorkerLocation, hasCustomerLocation, workerLocation, customerLocation]);
 
   useEffect(() => {
-    if (!mapRef.current || !apiConfigured || !hasWorkerLocation || !hasCustomerLocation) return;
+    if (!mapRef.current || !apiConfigured || !hasWorkerLocation || (!hasCustomerLocation && !hasDestination)) return;
 
     let cancelled = false;
 
@@ -75,7 +86,9 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
         if (cancelled || !mapRef.current) return;
 
         const worker = { lat: workerLocation!.latitude, lng: workerLocation!.longitude };
-        const customer = { lat: customerLocation!.latitude, lng: customerLocation!.longitude };
+        const customer = hasCustomerLocation && customerLocation
+          ? { lat: customerLocation.latitude, lng: customerLocation.longitude }
+          : null;
 
         if (!mapInstance.current) {
           mapInstance.current = new Map(mapRef.current, {
@@ -100,14 +113,16 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
           workerMarker.current.position = worker;
         }
 
-        if (!customerMarker.current) {
-          customerMarker.current = new AdvancedMarkerElement({
-            map,
-            position: customer,
-            title: 'Job location',
-          });
-        } else {
-          customerMarker.current.position = customer;
+        if (customer) {
+          if (!customerMarker.current) {
+            customerMarker.current = new AdvancedMarkerElement({
+              map,
+              position: customer,
+              title: 'Job location',
+            });
+          } else {
+            customerMarker.current.position = customer;
+          }
         }
 
         routePolylines.current.forEach((polyline) => polyline.setMap(null));
@@ -115,7 +130,7 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
 
         const result = await Route.computeRoutes({
           origin: worker,
-          destination: customer,
+          destination: customer || destinationAddress,
           travelMode: 'DRIVING',
           routingPreference: 'TRAFFIC_AWARE_OPTIMAL',
           fields: ['path', 'distanceMeters', 'durationMillis', 'viewport'],
@@ -157,11 +172,12 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
     workerLocation?.longitude,
     customerLocation?.latitude,
     customerLocation?.longitude,
+    destinationAddress,
   ]);
 
   const navigationUrl =
-    hasWorkerLocation && hasCustomerLocation && workerLocation && customerLocation
-      ? buildGoogleMapsNavigationUrl(workerLocation, customerLocation)
+    hasWorkerLocation && workerLocation && hasDestination
+      ? buildGoogleMapsNavigationUrl(workerLocation, hasCustomerLocation && customerLocation ? customerLocation : destinationAddress)
       : null;
 
   return (
@@ -182,7 +198,7 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
       </div>
 
       <div className={compact ? 'h-56' : 'h-72'}>
-        {apiConfigured && hasWorkerLocation && hasCustomerLocation ? (
+        {apiConfigured && hasWorkerLocation && (hasCustomerLocation || hasDestination) ? (
           <div ref={mapRef} className="w-full h-full" />
         ) : (
           <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-center p-5">
