@@ -1049,6 +1049,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addNotification = async (notif: Omit<AppNotification, 'id' | 'createdAt'>) => {
     const newNotif: AppNotification = {
       ...notif,
+      senderId: currentUser?.uid || userProfile.userId,
       id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       createdAt: new Date().toISOString(),
     };
