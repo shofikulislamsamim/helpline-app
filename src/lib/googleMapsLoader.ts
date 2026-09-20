@@ -4,13 +4,13 @@ declare global {
   }
 }
 
-let mapsPromise: Promise<typeof window.google> | null = null;
+let mapsPromise: Promise<any> | null = null;
 
 export function getGoogleMapsApiKey(): string {
   return String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
 }
 
-export async function loadGoogleMaps(): Promise<typeof window.google> {
+export async function loadGoogleMaps(): Promise<any> {
   if (window.google?.maps) return window.google;
   const apiKey = getGoogleMapsApiKey();
   if (!apiKey) {
