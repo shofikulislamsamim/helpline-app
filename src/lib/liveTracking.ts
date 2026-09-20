@@ -43,9 +43,12 @@ export function createTrackingLocation(position: GeolocationPosition): HireTrack
 
 export function buildGoogleMapsNavigationUrl(
   origin: HireTrackingLocation,
-  destination: { latitude: number; longitude: number }
+  destination: { latitude: number; longitude: number } | string
 ): string {
   const originText = encodeURIComponent(origin.latitude + ',' + origin.longitude);
-  const destinationText = encodeURIComponent(destination.latitude + ',' + destination.longitude);
+  const destinationText =
+    typeof destination === 'string'
+      ? encodeURIComponent(destination)
+      : encodeURIComponent(destination.latitude + ',' + destination.longitude);
   return `https://www.google.com/maps/dir/?api=1&origin=${originText}&destination=${destinationText}&travelmode=driving`;
 }
