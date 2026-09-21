@@ -62,6 +62,7 @@ export type LocationMatchType =
 export interface CustomerLocationQuery {
   latitude?: number | null;
   longitude?: number | null;
+  coordinates?: { latitude: number; longitude: number };
   upazila?: string | null;
   district?: string | null;
   division?: string | null;
@@ -188,7 +189,7 @@ export function getWorkerDistanceResult(
   }
 
   // Other area
-  const locationSummary = `${worker.presentAddress?.district || 'ঢাকা'}, ${worker.presentAddress?.division || 'বাংলাদেশ'}`;
+  const locationSummary = [worker.presentAddress?.district, worker.presentAddress?.division].filter(Boolean).join(', ') || 'লোকেশন দেওয়া হয়নি';
   return {
     hasGpsDistance: false,
     distanceKm: null,
