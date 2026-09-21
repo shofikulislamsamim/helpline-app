@@ -109,7 +109,7 @@ export const calculateWorkerRelevance = (
   const normalizedQuery = normalizeSearchText(searchQuery);
   if (!normalizedQuery) {
     // Base score when query is empty:
-    let baseScore = (worker.rating || 5.0) * 10 + (worker.completedJobsCount || 0);
+    let baseScore = (worker.reviewCount > 0 ? worker.rating : 0) * 10 + (worker.completedJobsCount || 0);
     if (worker.isOnline) baseScore += 50;
     if (worker.verificationStatus === 'verified' || worker.verificationStatus === 'approved') baseScore += 30;
     if (serviceType === 'digital' && worker.portfolio && worker.portfolio.length > 0) baseScore += 25;
@@ -240,10 +240,10 @@ export const calculateWorkerRelevance = (
     }
 
     // Rating booster
-    score += (worker.rating || 5.0) * 5;
+    score += (worker.reviewCount > 0 ? worker.rating : 0) * 5;
 
     // Experience booster
-    const exp = worker.experiences?.[0]?.years || 1;
+    const exp = worker.experiences?.[0]?.years ?? 0;
     score += Math.min(exp, 15) * 2;
 
     // Digital Specific Boosters
