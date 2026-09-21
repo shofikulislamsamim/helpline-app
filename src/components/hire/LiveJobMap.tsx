@@ -1,12 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ExternalLink, Loader2, MapPin, Navigation, Radio, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ExternalLink, MapPin, Navigation, Radio, ShieldCheck } from 'lucide-react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { HireRequest } from '../../types';
 import { db } from '../../lib/firebase';
 import { calculateHaversineDistanceKm, formatDistanceBn } from '../../lib/geoDistance';
 import { buildGoogleMapsNavigationUrl, isValidCoordinate, TrackedHireRequest } from '../../lib/liveTracking';
-import { getGoogleMapsApiKey } from '../../lib/googleMapsLoader';
-import { loadGoogleMaps } from '../../lib/googleMapsLoader';
 
 interface LiveJobMapProps {
   request: HireRequest;
@@ -20,14 +18,6 @@ interface Coordinates {
 
 export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false }) => {
   const [liveRequest, setLiveRequest] = useState<TrackedHireRequest>(request as TrackedHireRequest);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [routeSummary, setRouteSummary] = useState<{ distanceMeters?: number; durationMillis?: number } | null>(null);
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  const mapInstance = useRef<any>(null);
-  const workerMarker = useRef<any>(null);
-  const customerMarker = useRef<any>(null);
-  const routePolylines = useRef<any[]>([]);
-  const lastRouteRefresh = useRef<{ at: number; latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -54,10 +44,10 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
       'Bangladesh',
     ].filter(Boolean).join(', ')
   );
+
   const hasWorkerLocation = isValidCoordinate(workerLocation?.latitude, workerLocation?.longitude);
   const hasCustomerLocation = isValidCoordinate(customerLocation?.latitude, customerLocation?.longitude);
   const hasDestination = destinationAddress.trim().length > 5;
-  const apiConfigured = Boolean(getGoogleMapsApiKey());
 
   const fallbackDistance = useMemo(() => {
     if (!hasWorkerLocation || !hasCustomerLocation || !workerLocation || !customerLocation) return null;
@@ -69,134 +59,41 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
     );
   }, [hasWorkerLocation, hasCustomerLocation, workerLocation, customerLocation]);
 
-  useEffect(() => {
-    if (!mapRef.current || !apiConfigured || !hasWorkerLocation || (!hasCustomerLocation && !hasDestination)) return;
+  const mapUrl = useMemo(() => {
+    if (!hasWorkerLocation || !workerLocation) return null;
 
-    let cancelled = false;
+    const destination = hasCustomerLocation && customerLocation
+      ? { latitude: customerLocation.latitude, longitude: customerLocation.longitude }
+      : null;
 
-    const renderMap = async () => {
-      try {
-        const google = await loadGoogleMaps();
-        if (cancelled || !mapRef.current) return;
+    const lat = destination ? (workerLocation.latitude + destination.latitude) / 2 : workerLocation.latitude;
+    const lon = destination ? (workerLocation.longitude + destination.longitude) / 2 : workerLocation.longitude;
+    const latSpan = destination ? Math.max(Math.abs(workerLocation.latitude - destination.latitude) * 2.8, 0.01) : 0.03;
+    const lonSpan = destination ? Math.max(Math.abs(workerLocation.longitude - destination.longitude) * 2.8, 0.01) : 0.03;
 
-        const [{ Map }, { AdvancedMarkerElement }, { Route }] = await Promise.all([
-          google.maps.importLibrary('maps') as Promise<any>,
-          google.maps.importLibrary('marker') as Promise<any>,
-          google.maps.importLibrary('routes') as Promise<any>,
-        ]);
+    const bbox = [
+      lon - lonSpan,
+      lat - latSpan,
+      lon + lonSpan,
+      lat + latSpan,
+    ].map((value) => value.toFixed(6)).join(',');
 
-        if (cancelled || !mapRef.current) return;
-
-        const worker = { lat: workerLocation!.latitude, lng: workerLocation!.longitude };
-        const customer = hasCustomerLocation && customerLocation
-          ? { lat: customerLocation.latitude, lng: customerLocation.longitude }
-          : null;
-
-        if (!mapInstance.current) {
-          mapInstance.current = new Map(mapRef.current, {
-            center: worker,
-            zoom: 13,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: true,
-            mapId: 'DEMO_MAP_ID',
-          });
-        }
-
-        const map = mapInstance.current;
-
-        if (!workerMarker.current) {
-          workerMarker.current = new AdvancedMarkerElement({
-            map,
-            position: worker,
-            title: 'Worker live location',
-          });
-        } else {
-          workerMarker.current.position = worker;
-        }
-
-        if (customer) {
-          if (!customerMarker.current) {
-            customerMarker.current = new AdvancedMarkerElement({
-              map,
-              position: customer,
-              title: 'Job location',
-            });
-          } else {
-            customerMarker.current.position = customer;
-          }
-        }
-
-        const previousRoute = lastRouteRefresh.current;
-        const routeMovedEnough = !previousRoute ||
-          Date.now() - previousRoute.at >= 30000 ||
-          calculateHaversineDistanceKm(
-            previousRoute.latitude,
-            previousRoute.longitude,
-            worker.latitude,
-            worker.longitude
-          ) >= 0.1;
-
-        if (!routeMovedEnough) return;
-
-        lastRouteRefresh.current = {
-          at: Date.now(),
-          latitude: worker.lat,
-          longitude: worker.lng,
-        };
-
-        routePolylines.current.forEach((polyline) => polyline.setMap(null));
-        routePolylines.current = [];
-
-        const result = await Route.computeRoutes({
-          origin: worker,
-          destination: customer || destinationAddress,
-          travelMode: 'DRIVING',
-          fields: ['path', 'distanceMeters', 'durationMillis', 'viewport'],
-        });
-
-        if (cancelled) return;
-
-        const route = result.routes?.[0];
-        if (!route) {
-          setMapError('রুট পাওয়া যায়নি।');
-          return;
-        }
-
-        routePolylines.current = route.createPolylines();
-        routePolylines.current.forEach((polyline: any) => polyline.setMap(map));
-        setRouteSummary({
-          distanceMeters: route.distanceMeters,
-          durationMillis: route.durationMillis,
-        });
-
-        if (route.viewport) map.fitBounds(route.viewport);
-        setMapError(null);
-      } catch (error) {
-        console.warn('Google Maps route error:', error);
-        if (!cancelled) setMapError('Google Maps চালু করা যায়নি। API key বা Maps/Routes API সেটআপ পরীক্ষা করুন।');
-      }
-    };
-
-    void renderMap();
-
-    return () => {
-      cancelled = true;
-    };
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${workerLocation.latitude.toFixed(6)},${workerLocation.longitude.toFixed(6)}`;
   }, [
-    apiConfigured,
     hasWorkerLocation,
     hasCustomerLocation,
     workerLocation?.latitude,
     workerLocation?.longitude,
     customerLocation?.latitude,
     customerLocation?.longitude,
-    destinationAddress,
   ]);
 
   const navigationUrl =
     hasWorkerLocation && workerLocation && hasDestination
-      ? buildGoogleMapsNavigationUrl(workerLocation, hasCustomerLocation && customerLocation ? customerLocation : destinationAddress)
+      ? buildGoogleMapsNavigationUrl(
+          workerLocation,
+          hasCustomerLocation && customerLocation ? customerLocation : destinationAddress
+        )
       : null;
 
   return (
@@ -205,9 +102,9 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
         <div>
           <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Navigation className="w-4 h-4 text-blue-600" />
-            লাইভ লোকেশন ও রুট
+            লাইভ লোকেশন
           </h4>
-          <p className="text-[11px] text-slate-500 mt-0.5">Worker ↔ কাজের স্থান • শুধু সংশ্লিষ্ট কাজের পক্ষগুলো দেখতে পারে</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">Worker-এর GPS অবস্থান • শুধু সংশ্লিষ্ট কাজের পক্ষগুলো দেখতে পারে</p>
         </div>
         {liveRequest.status === 'ON_THE_WAY' && (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
@@ -217,22 +114,20 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
       </div>
 
       <div className={compact ? 'h-56' : 'h-72'}>
-        {apiConfigured && hasWorkerLocation && (hasCustomerLocation || hasDestination) ? (
-          <div ref={mapRef} className="w-full h-full" />
+        {mapUrl ? (
+          <iframe
+            title="Live worker location map"
+            src={mapUrl}
+            className="w-full h-full border-0"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
         ) : (
           <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center text-center p-5">
             <MapPin className="w-8 h-8 text-slate-400 mb-2" />
-            <p className="text-xs font-bold text-slate-700">
-              {!apiConfigured
-                ? 'Google Maps API এখনো সংযুক্ত করা হয়নি'
-                : !hasWorkerLocation
-                  ? 'Worker-এর live GPS location এখনো পাওয়া যায়নি'
-                  : 'কাজের location-এর GPS coordinate এখনো নেই'}
-            </p>
+            <p className="text-xs font-bold text-slate-700">Worker-এর live GPS location এখনো পাওয়া যায়নি</p>
             <p className="text-[11px] text-slate-500 mt-1 max-w-sm">
-              {liveRequest.status === 'ON_THE_WAY'
-                ? 'Worker-এর GPS permission চালু থাকলে এখানে live location ও route দেখা যাবে।'
-                : 'Worker রওনা দিলে live tracking চালু হবে।'}
+              Worker-এর GPS permission চালু থাকলে এখানে live location দেখা যাবে।
             </p>
           </div>
         )}
@@ -241,20 +136,24 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
       <div className="p-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="rounded-xl bg-slate-50 p-2">
           <span className="text-[10px] text-slate-500 block">সরাসরি দূরত্ব</span>
+          <strong className="text-xs text-slate-900">{fallbackDistance !== null ? formatDistanceBn(fallbackDistance) : '—'}</strong>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-2">
+          <span className="text-[10px] text-slate-500 block">GPS নির্ভুলতা</span>
           <strong className="text-xs text-slate-900">
-            {fallbackDistance !== null ? formatDistanceBn(fallbackDistance) : '—'}
+            {workerLocation?.accuracyMeters ? Math.round(workerLocation.accuracyMeters) + ' মিটার' : '—'}
           </strong>
         </div>
         <div className="rounded-xl bg-slate-50 p-2">
-          <span className="text-[10px] text-slate-500 block">রাস্তার দূরত্ব</span>
+          <span className="text-[10px] text-slate-500 block">সর্বশেষ আপডেট</span>
           <strong className="text-xs text-slate-900">
-            {routeSummary?.distanceMeters ? formatDistanceBn(routeSummary.distanceMeters / 1000) : '—'}
-          </strong>
-        </div>
-        <div className="rounded-xl bg-slate-50 p-2">
-          <span className="text-[10px] text-slate-500 block">আনুমানিক সময়</span>
-          <strong className="text-xs text-slate-900">
-            {routeSummary?.durationMillis ? Math.max(1, Math.round(routeSummary.durationMillis / 60000)) + ' মিনিট' : '—'}
+            {workerLocation?.lastUpdated
+              ? new Date(workerLocation.lastUpdated).toLocaleTimeString('bn-BD', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })
+              : '—'}
           </strong>
         </div>
         <div className="rounded-xl bg-slate-50 p-2 flex items-center justify-center">
@@ -276,15 +175,9 @@ export const LiveJobMap: React.FC<LiveJobMapProps> = ({ request, compact = false
         </div>
       </div>
 
-      {mapError && (
-        <div className="px-3 pb-3 text-[11px] text-amber-700 flex items-center gap-1.5">
-          <Navigation className="w-3.5 h-3.5" /> {mapError}
-        </div>
-      )}
-
-      {apiConfigured && !hasWorkerLocation && (
-        <div className="px-3 pb-3 text-[11px] text-slate-500 flex items-center gap-1.5">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Worker-এর live GPS আসার অপেক্ষায়…
+      {!hasCustomerLocation && hasWorkerLocation && (
+        <div className="px-3 pb-3 text-[11px] text-amber-700">
+          কাজের GPS coordinate না থাকায় এখন শুধু Worker-এর live location দেখানো হচ্ছে। ঠিকানা থাকলে navigation link ব্যবহার করা যাবে।
         </div>
       )}
     </section>
