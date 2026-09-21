@@ -66,10 +66,11 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
 
   // Geolocation & Proximity States (Strictly for Physical Services)
   const [customerLocation, setCustomerLocation] = useState<CustomerLocationQuery>(() => ({
-    division: userProfile.presentAddress?.division || 'ঢাকা',
-    district: userProfile.presentAddress?.district || 'ঢাকা',
-    upazila: userProfile.presentAddress?.upazila || 'মিরপুর (১০ নং সেক্টর)',
-    coordinates: userProfile.currentLocation?.coordinates || { latitude: 23.8069, longitude: 90.3687 },
+    division: userProfile.presentAddress?.division || '',
+    district: userProfile.presentAddress?.district || '',
+    upazila: userProfile.presentAddress?.upazila || '',
+    latitude: userProfile.currentLocation?.latitude,
+    longitude: userProfile.currentLocation?.longitude,
   }));
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationSuccessMsg, setLocationSuccessMsg] = useState<string | null>(null);
@@ -87,10 +88,8 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
         setIsGettingLocation(false);
         setCustomerLocation((prev) => ({
           ...prev,
-          coordinates: {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          },
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
         }));
         setLocationSuccessMsg('লাইভ জিপিএস লোকেশন আপডেট হয়েছে!');
         setTimeout(() => setLocationSuccessMsg(null), 3000);
@@ -98,7 +97,7 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
       (err) => {
         setIsGettingLocation(false);
         console.warn('Geolocation notice:', err);
-        setLocationSuccessMsg('ডিফল্ট ঢাকা লোকেশন ব্যবহার হচ্ছে');
+        setLocationSuccessMsg('GPS লোকেশন নেওয়া যায়নি; আপনার প্রোফাইলের লোকেশন ব্যবহার করা হবে');
         setTimeout(() => setLocationSuccessMsg(null), 3000);
       },
       { timeout: 8000 }
@@ -217,11 +216,11 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
       }
 
       // Experience filter
-      const exp = w.experiences?.[0]?.years || 1;
+      const exp = w.experiences?.[0]?.years ?? 0;
       if (minExperience > 0 && exp < minExperience) return false;
 
       // Rating filter
-      const rating = w.rating || 5.0;
+      const rating = w.reviewCount > 0 ? w.rating : 0;
       if (minRating > 0 && rating < minRating) return false;
 
       return true;
@@ -269,7 +268,7 @@ export const HirePage: React.FC<HirePageProps> = ({ onBack, onNavigate }) => {
     }
 
     if (sortBy === 'rating') {
-      results.sort((a, b) => (b.worker.rating || 5.0) - (a.worker.rating || 5.0));
+      results.sort((a, b) => (b.worker.reviewCount > 0 ? b.worker.rating : 0) - (a.worker.reviewCount > 0 ? a.worker.rating : 0));
       return results.map((item) => item.worker);
     }
 
